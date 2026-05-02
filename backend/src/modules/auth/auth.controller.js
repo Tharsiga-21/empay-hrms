@@ -56,4 +56,27 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe };
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+    await authService.forgotPassword(email);
+    // Always return success to prevent email enumeration
+    res.json({ success: true, message: 'If an account exists, a reset link has been sent' });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Internal server error' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) return res.status(400).json({ success: false, message: 'Token and new password required' });
+    await authService.resetPassword(token, newPassword);
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Internal server error' });
+  }
+};
+
+module.exports = { register, login, getMe, forgotPassword, resetPassword };

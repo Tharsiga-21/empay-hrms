@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const { sendEmail } = require('../../utils/mailer');
 
 class LeaveService {
   // ----- Leave Types -----
@@ -204,13 +205,26 @@ class LeaveService {
 
       // Return updated request
       const updated = await pool.query(
-        `SELECT lr.*, lt.name as leave_type_name, u.full_name
+        `SELECT lr.*, lt.name as leave_type_name, u.full_name, u.email
          FROM leave_requests lr
          JOIN leave_types lt ON lr.leave_type_id = lt.id
          JOIN users u ON lr.employee_id = u.id
          WHERE lr.id = $1`,
         [requestId]
       );
+
+      // Send email to employee
+      if (updated.rows[0] && updated.rows[0].email) {
+        const employeeName = updated.rows[0].full_name;
+        const leaveType = updated.rows[0].leave_type_name;
+        await sendEmail(
+          updated.rows[0].email,
+          'Leave Request Approved - EmPay HRMS',
+          `Hi ${employeeName},\n\nYour request for ${leaveType} from ${new Date(request.start_date).toLocaleDateString()} to ${new Date(request.end_date).toLocaleDateString()} has been approved.`,
+          `<p>Hi ${employeeName},</p><p>Your request for <strong>${leaveType}</strong> from ${new Date(request.start_date).toLocaleDateString()} to ${new Date(request.end_date).toLocaleDateString()} has been <strong>approved</strong>.</p>`
+        );
+      }
+
       return updated.rows[0];
     } catch (error) {
       await client.query('ROLLBACK');
@@ -238,6 +252,28 @@ class LeaveService {
        RETURNING *`,
       [reviewerId, requestId]
     );
+
+    const updated = await pool.query(
+      `SELECT lr.*, lt.name as leave_type_name, u.full_name, u.email
+       FROM leave_requests lr
+       JOIN leave_types lt ON lr.leave_type_id = lt.id
+       JOIN users u ON lr.employee_id = u.id
+       WHERE lr.id = $1`,
+      [requestId]
+    );
+
+    if (updated.rows[0] && updated.rows[0].email) {
+      const employeeName = updated.rows[0].full_name;
+      const leaveType = updated.rows[0].leave_type_name;
+      const request = updated.rows[0];
+      await sendEmail(
+        updated.rows[0].email,
+        'Leave Request Rejected - EmPay HRMS',
+        `Hi ${employeeName},\n\nYour request for ${leaveType} from ${new Date(request.start_date).toLocaleDateString()} to ${new Date(request.end_date).toLocaleDateString()} has been rejected.`,
+        `<p>Hi ${employeeName},</p><p>Your request for <strong>${leaveType}</strong> from ${new Date(request.start_date).toLocaleDateString()} to ${new Date(request.end_date).toLocaleDateString()} has been <strong>rejected</strong>.</p>`
+      );
+    }
+
     return result.rows[0];
   }
 }

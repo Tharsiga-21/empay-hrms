@@ -149,7 +149,7 @@ export default function UserManagement() {
           <div className="glass-card-strong w-full max-w-lg p-6 fade-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-on-surface">{editUser ? 'Edit Employee' : 'Add Employee'}</h2>
-              <button onClick={() => setShowDialog(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4 text-on-surface-variant" /></button>
+              <button onClick={() => setShowDialog(false)} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)]"><X className="w-4 h-4 text-on-surface-variant" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

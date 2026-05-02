@@ -29,7 +29,7 @@ export default function LeaveApprovals() {
     <div className="space-y-6">
       <PageHeader title="Leave Approvals" subtitle="Review and process leave requests." />
 
-      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.05)' }}>
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--glass-bg)' }}>
         {[{ key: '', label: 'All' }, { key: 'pending', label: 'Pending' }, { key: 'approved', label: 'Approved' }, { key: 'rejected', label: 'Rejected' }].map(t => (
           <button key={t.key} onClick={() => setStatusFilter(t.key)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${statusFilter === t.key ? 'bg-primary/15 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}>
             {t.label}

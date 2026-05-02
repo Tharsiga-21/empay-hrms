@@ -84,10 +84,10 @@ export default function EmployeeDashboard() {
           <h3 className="text-lg font-semibold text-on-surface mb-4">Hours Logged This Week</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" stroke="#8c909f" fontSize={12} />
-              <YAxis stroke="#8c909f" fontSize={12} />
-              <Tooltip contentStyle={{ background: '#171f33', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#dae2fd' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="date" stroke="var(--chart-axis)" fontSize={12} />
+              <YAxis stroke="var(--chart-axis)" fontSize={12} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: '12px', color: 'var(--chart-tooltip-color)' }} />
               <Bar dataKey="hours" fill="#4d8eff" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

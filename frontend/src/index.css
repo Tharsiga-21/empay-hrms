@@ -1,8 +1,84 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ═══════════════════════════════════════════════
+   THEME TOKENS — Light mode is the default,
+   Dark mode activates via .dark class on <html>
+   ═══════════════════════════════════════════════ */
+
 @theme {
-  --color-surface: #0b1326;
+  --color-surface: #f8f9fc;
+  --color-surface-dim: #eff0f5;
+  --color-surface-bright: #ffffff;
+  --color-surface-container: #ffffff;
+  --color-surface-container-high: #f0f1f5;
+  --color-surface-container-highest: #e8e9ee;
+  --color-on-surface: #1a1c2e;
+  --color-on-surface-variant: #5c5f72;
+  --color-outline: #787b8a;
+  --color-outline-variant: #c8cad3;
+  --color-primary: #3b6ce7;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #3b6ce7;
+  --color-secondary: #7c3aed;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #7c3aed;
+  --color-tertiary: #0891b2;
+  --color-on-tertiary: #ffffff;
+  --color-error: #dc2626;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius-sm: 0.25rem;
+  --radius-default: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.5rem;
+}
+
+/* ─── CSS Variables for dynamic values (glass, sidebar, charts) ─── */
+@layer theme {
+  :root {
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-bg-strong: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-hover: rgba(0, 0, 0, 0.12);
+  --sidebar-bg: rgba(255, 255, 255, 0.97);
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --topbar-bg: rgba(248, 249, 252, 0.85);
+  --mesh-bg: #f8f9fc;
+  --mesh-orb1: rgba(59, 108, 231, 0.08);
+  --mesh-orb2: rgba(124, 58, 237, 0.08);
+  --input-bg: rgba(0, 0, 0, 0.03);
+  --input-border: rgba(0, 0, 0, 0.1);
+  --input-focus-shadow: rgba(59, 108, 231, 0.15);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+  --table-border: rgba(0, 0, 0, 0.06);
+  --table-border-light: rgba(0, 0, 0, 0.04);
+  --table-row-hover: rgba(0, 0, 0, 0.02);
+  --skeleton-from: rgba(0, 0, 0, 0.04);
+  --skeleton-mid: rgba(0, 0, 0, 0.07);
+  --progress-bg: rgba(0, 0, 0, 0.06);
+  --sidebar-hover: rgba(0, 0, 0, 0.04);
+  --sidebar-active-bg: rgba(59, 108, 231, 0.1);
+  --glow-sweep: rgba(255, 255, 255, 0.4);
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: rgba(0, 0, 0, 0.08);
+  --chart-tooltip-color: #1a1c2e;
+  --chart-grid: rgba(0, 0, 0, 0.06);
+  --chart-axis: #787b8a;
+  }
+}
+
+@layer base {
+  .dark {
+    --color-surface: #0b1326;
   --color-surface-dim: #0b1326;
   --color-surface-bright: #31394d;
   --color-surface-container: #171f33;
@@ -24,16 +100,84 @@
   --color-success: #4ade80;
   --color-warning: #fbbf24;
   --color-danger: #f87171;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --radius-sm: 0.25rem;
-  --radius-default: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
-  --radius-2xl: 1.5rem;
+
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-bg-hover: rgba(255, 255, 255, 0.08);
+  --glass-bg-strong: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-hover: rgba(255, 255, 255, 0.15);
+  --sidebar-bg: rgba(11, 19, 38, 0.95);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --topbar-bg: rgba(11, 19, 38, 0.6);
+  --mesh-bg: #0b1326;
+  --mesh-orb1: rgba(77, 142, 255, 0.2);
+  --mesh-orb2: rgba(130, 80, 223, 0.2);
+  --input-bg: rgba(0, 0, 0, 0.2);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-focus-shadow: rgba(76, 215, 246, 0.15);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+  --table-border: rgba(255, 255, 255, 0.06);
+  --table-border-light: rgba(255, 255, 255, 0.04);
+  --table-row-hover: rgba(255, 255, 255, 0.03);
+    --color-surface-dim: #0b1326;
+    --color-surface-bright: #31394d;
+    --color-surface-container: #171f33;
+    --color-surface-container-high: #222a3d;
+    --color-surface-container-highest: #2d3449;
+    --color-on-surface: #dae2fd;
+    --color-on-surface-variant: #c2c6d6;
+    --color-outline: #8c909f;
+    --color-outline-variant: #424754;
+    --color-primary: #adc6ff;
+    --color-on-primary: #002e6a;
+    --color-primary-container: #4d8eff;
+    --color-secondary: #d0bcff;
+    --color-on-secondary: #3c0091;
+    --color-secondary-container: #571bc1;
+    --color-tertiary: #4cd7f6;
+    --color-on-tertiary: #003640;
+    --color-error: #ffb4ab;
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-danger: #f87171;
+
+    --glass-bg: rgba(255, 255, 255, 0.06);
+    --glass-bg-hover: rgba(255, 255, 255, 0.08);
+    --glass-bg-strong: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-border-hover: rgba(255, 255, 255, 0.15);
+    --sidebar-bg: rgba(11, 19, 38, 0.95);
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+    --topbar-bg: rgba(11, 19, 38, 0.6);
+    --mesh-bg: #0b1326;
+    --mesh-orb1: rgba(77, 142, 255, 0.2);
+    --mesh-orb2: rgba(130, 80, 223, 0.2);
+    --input-bg: rgba(0, 0, 0, 0.2);
+    --input-border: rgba(255, 255, 255, 0.1);
+    --input-focus-shadow: rgba(76, 215, 246, 0.15);
+    --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+    --table-border: rgba(255, 255, 255, 0.06);
+    --table-border-light: rgba(255, 255, 255, 0.04);
+    --table-row-hover: rgba(255, 255, 255, 0.03);
+    --skeleton-from: rgba(255, 255, 255, 0.06);
+    --skeleton-mid: rgba(255, 255, 255, 0.1);
+    --progress-bg: rgba(255, 255, 255, 0.08);
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active-bg: rgba(77, 142, 255, 0.12);
+    --glow-sweep: rgba(255, 255, 255, 0.1);
+    --chart-tooltip-bg: #1e2638;
+    --chart-tooltip-border: rgba(255, 255, 255, 0.1);
+    --chart-tooltip-color: #ffffff;
+    --chart-grid: rgba(255, 255, 255, 0.06);
+    --chart-axis: #8c909f;
+  }
 }
 
-/* Base */
+/* ═══════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════ */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -51,38 +195,61 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Glassmorphic Card */
+/* ═══════════════════════════════════════════════
+   GLASSMORPHIC COMPONENTS
+   ═══════════════════════════════════════════════ */
 .glass-card {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   transition: all 0.3s ease;
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
 }
 
 .glass-card-strong {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg-strong);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--glass-border-hover);
   border-radius: var(--radius-xl);
 }
 
-/* Mesh gradient background */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+}
+
+.glass-panel-elevated {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border-hover);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* ═══════════════════════════════════════════════
+   MESH GRADIENT BACKGROUND
+   ═══════════════════════════════════════════════ */
 .mesh-gradient {
   position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
-  background: var(--color-surface);
+  background: var(--mesh-bg);
+  transition: background-color 0.3s ease;
 }
 
 .mesh-gradient::before {
@@ -92,9 +259,9 @@ body {
   height: 600px;
   top: -100px;
   left: -100px;
-  background: radial-gradient(circle, rgba(77, 142, 255, 0.2) 0%, transparent 70%);
-  filter: blur(80px);
+  background: radial-gradient(circle, var(--mesh-orb1) 0%, transparent 70%);
   animation: float1 15s ease-in-out infinite;
+  will-change: transform;
 }
 
 .mesh-gradient::after {
@@ -104,9 +271,9 @@ body {
   height: 500px;
   bottom: -100px;
   right: -100px;
-  background: radial-gradient(circle, rgba(130, 80, 223, 0.2) 0%, transparent 70%);
-  filter: blur(80px);
+  background: radial-gradient(circle, var(--mesh-orb2) 0%, transparent 70%);
   animation: float2 18s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes float1 {
@@ -121,98 +288,177 @@ body {
   66% { transform: translate(40px, -50px) scale(0.95); }
 }
 
-/* Neon status chips */
+/* ═══════════════════════════════════════════════
+   STATUS CHIPS — work in both modes
+   ═══════════════════════════════════════════════ */
 .chip-present {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+.dark .chip-present {
   color: #4ade80;
   background: rgba(74, 222, 128, 0.1);
   border: 1px solid rgba(74, 222, 128, 0.2);
 }
 
 .chip-absent {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+.dark .chip-absent {
   color: #f87171;
   background: rgba(248, 113, 113, 0.1);
   border: 1px solid rgba(248, 113, 113, 0.2);
 }
 
 .chip-half-day {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.1);
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+.dark .chip-half-day {
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .chip-on-leave {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+.dark .chip-on-leave {
   color: #60a5fa;
   background: rgba(96, 165, 250, 0.1);
   border: 1px solid rgba(96, 165, 250, 0.2);
 }
 
 .chip-pending {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.1);
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+.dark .chip-pending {
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .chip-approved {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+.dark .chip-approved {
   color: #4ade80;
   background: rgba(74, 222, 128, 0.1);
   border: 1px solid rgba(74, 222, 128, 0.2);
 }
 
 .chip-rejected {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+.dark .chip-rejected {
   color: #f87171;
   background: rgba(248, 113, 113, 0.1);
   border: 1px solid rgba(248, 113, 113, 0.2);
 }
 
 .chip-admin {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+.dark .chip-admin {
   color: #f87171;
   background: rgba(248, 113, 113, 0.1);
   border: 1px solid rgba(248, 113, 113, 0.2);
 }
 
 .chip-hr_officer {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
+.dark .chip-hr_officer {
   color: #a78bfa;
   background: rgba(167, 139, 250, 0.1);
   border: 1px solid rgba(167, 139, 250, 0.2);
 }
 
 .chip-payroll_officer {
+  color: #0891b2;
+  background: rgba(8, 145, 178, 0.1);
+  border: 1px solid rgba(8, 145, 178, 0.2);
+}
+.dark .chip-payroll_officer {
   color: #4cd7f6;
   background: rgba(76, 215, 246, 0.1);
   border: 1px solid rgba(76, 215, 246, 0.2);
 }
 
 .chip-employee {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+.dark .chip-employee {
   color: #4ade80;
   background: rgba(74, 222, 128, 0.1);
   border: 1px solid rgba(74, 222, 128, 0.2);
 }
 
 .chip-draft {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.1);
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+.dark .chip-draft {
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .chip-finalized {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+.dark .chip-finalized {
   color: #4ade80;
   background: rgba(74, 222, 128, 0.1);
   border: 1px solid rgba(74, 222, 128, 0.2);
 }
 
 .chip-active {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+.dark .chip-active {
   color: #4ade80;
   background: rgba(74, 222, 128, 0.1);
   border: 1px solid rgba(74, 222, 128, 0.2);
 }
 
 .chip-inactive {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+.dark .chip-inactive {
   color: #f87171;
   background: rgba(248, 113, 113, 0.1);
   border: 1px solid rgba(248, 113, 113, 0.2);
 }
 
-/* Custom scrollbar */
+/* ═══════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════ */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -223,31 +469,35 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--scrollbar-thumb-hover);
 }
 
-/* Sidebar active link */
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════════ */
 .sidebar-link {
   transition: all 0.2s ease;
   border-left: 3px solid transparent;
 }
 
 .sidebar-link:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--sidebar-hover);
 }
 
 .sidebar-link.active {
-  background: rgba(77, 142, 255, 0.12);
+  background: var(--sidebar-active-bg);
   border-left-color: var(--color-primary-container);
   color: var(--color-primary);
 }
 
-/* Animated button */
+/* ═══════════════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════════════ */
 .btn-glow {
   position: relative;
   overflow: hidden;
@@ -261,7 +511,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background: linear-gradient(90deg, transparent, var(--glow-sweep), transparent);
   transition: left 0.5s ease;
 }
 
@@ -269,10 +519,12 @@ body {
   left: 100%;
 }
 
-/* Input glow on focus */
+/* ═══════════════════════════════════════════════
+   INPUTS
+   ═══════════════════════════════════════════════ */
 .input-glass {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
   color: var(--color-on-surface);
   transition: all 0.3s ease;
@@ -280,15 +532,17 @@ body {
 
 .input-glass:focus {
   outline: none;
-  border-color: var(--color-tertiary);
-  box-shadow: 0 0 0 2px rgba(76, 215, 246, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--input-focus-shadow);
 }
 
 .input-glass::placeholder {
   color: var(--color-outline);
 }
 
-/* Table styles */
+/* ═══════════════════════════════════════════════
+   TABLES
+   ═══════════════════════════════════════════════ */
 .glass-table th {
   color: var(--color-on-surface-variant);
   font-size: 0.7rem;
@@ -296,21 +550,23 @@ body {
   letter-spacing: 0.05em;
   font-weight: 600;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--table-border);
   text-align: left;
 }
 
 .glass-table td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--table-border-light);
   font-size: 0.875rem;
 }
 
 .glass-table tr:hover td {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--table-row-hover);
 }
 
-/* Pulse animation */
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════ */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -320,20 +576,18 @@ body {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
-/* Skeleton loading */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
 .skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.06) 75%);
+  background: linear-gradient(90deg, var(--skeleton-from) 25%, var(--skeleton-mid) 50%, var(--skeleton-from) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius-md);
 }
 
-/* Fade in animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -343,11 +597,13 @@ body {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
-/* Progress bar */
+/* ═══════════════════════════════════════════════
+   PROGRESS BAR
+   ═══════════════════════════════════════════════ */
 .progress-bar {
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--progress-bg);
   overflow: hidden;
 }
 
@@ -355,4 +611,15 @@ body {
   height: 100%;
   border-radius: 2px;
   transition: width 0.5s ease;
+}
+
+/* ═══════════════════════════════════════════════
+   THEME TOGGLE ANIMATION
+   ═══════════════════════════════════════════════ */
+.theme-toggle-icon {
+  transition: transform 0.3s ease, opacity 0.2s ease;
+}
+
+.theme-toggle-btn:hover .theme-toggle-icon {
+  transform: rotate(15deg);
 }

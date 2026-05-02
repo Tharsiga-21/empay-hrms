@@ -64,12 +64,12 @@ export default function MyAttendance() {
             const dayOfWeek = new Date(year, month - 1, day).getDay();
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
             const isFuture = new Date(year, month - 1, day) > new Date();
-            const bg = isFuture ? 'transparent' : isWeekend ? 'rgba(195, 14, 14, 0.91)' : record ? `${statusColors[record.status]}20` : 'rgba(213, 35, 35, 0.94)';
-            const border = record ? `1px solid ${statusColors[record.status]}40` : '1px solid transparent';
+            const bg = isFuture ? 'transparent' : record ? `${statusColors[record.status]}20` : isWeekend ? 'var(--glass-bg)' : `${statusColors.absent}20`;
+            const border = record ? `1px solid ${statusColors[record.status]}40` : (!isWeekend && !isFuture) ? `1px solid ${statusColors.absent}40` : '1px solid transparent';
 
             return (
               <div key={day} className="aspect-square flex flex-col items-center justify-center rounded-xl text-sm transition-all hover:scale-105 cursor-default group relative" style={{ background: bg, border }}>
-                <span className={`font-medium ${isWeekend ? 'text-on-surface-variant/40' : 'text-on-surface'}`}>{day}</span>
+                <span className={`font-medium ${(!record && isWeekend) ? 'text-on-surface-variant/40' : 'text-on-surface'}`}>{day}</span>
                 {record && <span className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ background: statusColors[record.status] }} />}
                 {record && (
                   <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 glass-panel-elevated px-3 py-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">

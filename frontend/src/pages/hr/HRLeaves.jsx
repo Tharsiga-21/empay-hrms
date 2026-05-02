@@ -66,7 +66,7 @@ export default function HRLeaves() {
       <PageHeader title="Leave Management" subtitle="Track and manage time off." />
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.05)' }}>
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--glass-bg)' }}>
         {[{ key: 'requests', label: 'Leave Requests' }, { key: 'allocation', label: 'Leave Allocation' }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.key ? 'bg-primary/15 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}>
             {t.label}
@@ -78,7 +78,7 @@ export default function HRLeaves() {
         <>
           <div className="flex gap-2">
             {['', 'pending', 'approved', 'rejected'].map(s => (
-              <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === s ? 'bg-primary/15 text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'}`}>
+              <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === s ? 'bg-primary/15 text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-[var(--sidebar-hover)]'}`}>
                 {s || 'All'}
               </button>
             ))}
@@ -144,7 +144,7 @@ export default function HRLeaves() {
           <div className="glass-card-strong w-full max-w-md p-6 fade-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-on-surface">Allocate Leave</h2>
-              <button onClick={() => setShowAllocDialog(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4 text-on-surface-variant" /></button>
+              <button onClick={() => setShowAllocDialog(false)} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)]"><X className="w-4 h-4 text-on-surface-variant" /></button>
             </div>
             <form onSubmit={handleAllocSubmit} className="space-y-4">
               <div>
