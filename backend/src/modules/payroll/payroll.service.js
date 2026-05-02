@@ -1,320 +1,331 @@
 const { pool } = require('../../config/db');
 const PDFDocument = require('pdfkit');
 
-// ---------- Salary Structures ----------
-const upsertSalaryStructure = async ({ employee_id, basic_salary, hra_percent, special_allowance, effective_from }) => {
-  const result = await pool.query(
-    `INSERT INTO salary_structures (employee_id, basic_salary, hra_percent, special_allowance, effective_from)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (employee_id) DO UPDATE SET
-       basic_salary = $2, hra_percent = $3, special_allowance = $4, effective_from = $5, created_at = NOW()
-     RETURNING *`,
-    [employee_id, basic_salary, hra_percent || 40, special_allowance || 0, effective_from || new Date()]
-  );
-  return result.rows[0];
-};
-
-const getAllSalaryStructures = async () => {
-  const result = await pool.query(
-    `SELECT ss.*, u.full_name, u.email, u.department, u.designation
-     FROM salary_structures ss
-     JOIN users u ON ss.employee_id = u.id
-     ORDER BY u.full_name`
-  );
-  return result.rows;
-};
-
-const getSalaryStructure = async (employeeId) => {
-  const result = await pool.query(
-    `SELECT ss.*, u.full_name, u.email, u.department, u.designation
-     FROM salary_structures ss
-     JOIN users u ON ss.employee_id = u.id
-     WHERE ss.employee_id = $1`,
-    [employeeId]
-  );
-  if (result.rows.length === 0) throw { status: 404, message: 'Salary structure not found.' };
-  return result.rows[0];
-};
-
-// ---------- Payruns ----------
-const generatePayrun = async (month, year, generatedBy) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    // Check if payrun already exists
-    let payrunResult = await client.query(
-      'SELECT * FROM payruns WHERE month = $1 AND year = $2', [month, year]
+class PayrollService {
+  // ----- Salary Structures -----
+  async upsertSalaryStructure(data) {
+    const { employee_id, basic_salary, hra_percent, special_allowance, effective_from } = data;
+    const result = await pool.query(
+      `INSERT INTO salary_structures (employee_id, basic_salary, hra_percent, special_allowance, effective_from)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (employee_id)
+       DO UPDATE SET basic_salary = $2, hra_percent = $3, special_allowance = $4, effective_from = $5, created_at = NOW()
+       RETURNING *`,
+      [employee_id, basic_salary, hra_percent || 40, special_allowance || 0, effective_from || new Date()]
     );
+    return result.rows[0];
+  }
 
-    let payrun;
-    if (payrunResult.rows.length > 0) {
-      payrun = payrunResult.rows[0];
-      // Delete existing payslips for re-generation
-      await client.query('DELETE FROM payslips WHERE payrun_id = $1', [payrun.id]);
-    } else {
-      const newPayrun = await client.query(
-        `INSERT INTO payruns (month, year, generated_by) VALUES ($1, $2, $3) RETURNING *`,
-        [month, year, generatedBy]
-      );
-      payrun = newPayrun.rows[0];
+  async getAllSalaryStructures() {
+    const result = await pool.query(
+      `SELECT ss.*, u.full_name, u.email, u.department, u.designation
+       FROM salary_structures ss
+       JOIN users u ON ss.employee_id = u.id
+       ORDER BY u.full_name`
+    );
+    return result.rows;
+  }
+
+  async getSalaryStructure(employeeId) {
+    const result = await pool.query(
+      `SELECT ss.*, u.full_name, u.email, u.department, u.designation
+       FROM salary_structures ss
+       JOIN users u ON ss.employee_id = u.id
+       WHERE ss.employee_id = $1`,
+      [employeeId]
+    );
+    if (result.rows.length === 0) {
+      throw { status: 404, message: 'Salary structure not found for this employee' };
     }
+    return result.rows[0];
+  }
 
-    // Calculate working days in the month
+  // ----- Payruns -----
+  _getWorkingDaysInMonth(month, year) {
+    let count = 0;
     const daysInMonth = new Date(year, month, 0).getDate();
-    let workingDays = 0;
     for (let d = 1; d <= daysInMonth; d++) {
       const day = new Date(year, month - 1, d).getDay();
-      if (day !== 0 && day !== 6) workingDays++;
+      if (day !== 0 && day !== 6) count++;
     }
+    return count;
+  }
 
-    // Get all active employees with salary structures
-    const employees = await client.query(
-      `SELECT u.id, u.full_name, u.department, u.designation, u.date_joined,
-              ss.basic_salary, ss.hra_percent, ss.special_allowance
-       FROM users u
-       JOIN salary_structures ss ON u.id = ss.employee_id
-       WHERE u.is_active = true`
-    );
+  async generatePayrun(month, year, generatedBy) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    let payslipsCount = 0;
-    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay = `${year}-${String(month).padStart(2, '0')}-${daysInMonth}`;
-
-    for (const emp of employees.rows) {
-      // Count present days and leaves
-      const attendanceResult = await client.query(
-        `SELECT
-           COALESCE(SUM(CASE WHEN status = 'present' THEN 1 WHEN status = 'half_day' THEN 0.5 WHEN status = 'on_leave' THEN 1 ELSE 0 END), 0) AS present_days,
-           COALESCE(COUNT(*) FILTER (WHERE status = 'on_leave'), 0) AS leaves_approved
-         FROM attendance
-         WHERE employee_id = $1 AND date BETWEEN $2 AND $3`,
-        [emp.id, firstDay, lastDay]
+      // Check if payrun exists
+      let payrunResult = await client.query(
+        'SELECT * FROM payruns WHERE month = $1 AND year = $2',
+        [month, year]
       );
 
-      const { present_days, leaves_approved } = attendanceResult.rows[0];
-      const presentDays = parseFloat(present_days);
-      const leavesApproved = parseInt(leaves_approved);
+      let payrunId;
+      if (payrunResult.rows.length > 0) {
+        payrunId = payrunResult.rows[0].id;
+        // Delete existing payslips to regenerate
+        await client.query('DELETE FROM payslips WHERE payrun_id = $1', [payrunId]);
+      } else {
+        const newPayrun = await client.query(
+          `INSERT INTO payruns (month, year, status, generated_by)
+           VALUES ($1, $2, 'finalized', $3) RETURNING *`,
+          [month, year, generatedBy]
+        );
+        payrunId = newPayrun.rows[0].id;
+      }
 
-      // Payroll calculation
-      const basicSalary = parseFloat(emp.basic_salary);
-      const hraPercent = parseFloat(emp.hra_percent);
-      const specialAllowance = parseFloat(emp.special_allowance);
+      // Get all active employees with salary structures
+      const employees = await client.query(
+        `SELECT ss.*, u.id as user_id, u.full_name, u.department
+         FROM salary_structures ss
+         JOIN users u ON ss.employee_id = u.id
+         WHERE u.is_active = true`
+      );
 
-      const perDay = basicSalary / workingDays;
-      const effectiveBasic = perDay * presentDays;
-      const hra = (hraPercent / 100) * effectiveBasic;
-      const grossSalary = effectiveBasic + hra + specialAllowance;
-      const pfEmployee = 0.12 * effectiveBasic;
-      const pfEmployer = 0.12 * effectiveBasic;
-      const professionalTax = grossSalary > 15000 ? 200 : 0;
-      const totalDeductions = pfEmployee + professionalTax;
-      const netPay = grossSalary - totalDeductions;
+      const working_days = this._getWorkingDaysInMonth(month, year);
+      let payslipsCount = 0;
 
+      for (const emp of employees.rows) {
+        // Get attendance for this month
+        const attendance = await client.query(
+          `SELECT
+             COUNT(*) FILTER (WHERE status = 'present') as present_count,
+             COUNT(*) FILTER (WHERE status = 'half_day') as half_day_count,
+             COUNT(*) FILTER (WHERE status = 'on_leave') as on_leave_count
+           FROM attendance
+           WHERE employee_id = $1
+             AND EXTRACT(MONTH FROM date) = $2
+             AND EXTRACT(YEAR FROM date) = $3`,
+          [emp.employee_id, month, year]
+        );
+
+        const att = attendance.rows[0];
+        const present_days = parseFloat(att.present_count) + (parseFloat(att.half_day_count) * 0.5) + parseFloat(att.on_leave_count);
+        const leaves_approved = parseInt(att.on_leave_count);
+
+        // Payroll calculation
+        const per_day = parseFloat(emp.basic_salary) / working_days;
+        const effective_basic = per_day * present_days;
+        const hra = (parseFloat(emp.hra_percent) / 100) * effective_basic;
+        const special_allowance = parseFloat(emp.special_allowance);
+        const gross_salary = effective_basic + hra + special_allowance;
+        const pf_employee = 0.12 * effective_basic;
+        const pf_employer = 0.12 * effective_basic;
+        const professional_tax = gross_salary > 15000 ? 200 : 0;
+        const total_deductions = pf_employee + professional_tax;
+        const net_pay = gross_salary - total_deductions;
+
+        await client.query(
+          `INSERT INTO payslips (payrun_id, employee_id, working_days, present_days, leaves_approved,
+           basic, hra, special_allowance, gross_salary, pf_employee, pf_employer,
+           professional_tax, total_deductions, net_pay)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+          [payrunId, emp.employee_id, working_days,
+           present_days.toFixed(2), leaves_approved,
+           effective_basic.toFixed(2), hra.toFixed(2), special_allowance.toFixed(2),
+           gross_salary.toFixed(2), pf_employee.toFixed(2), pf_employer.toFixed(2),
+           professional_tax.toFixed(2), total_deductions.toFixed(2), net_pay.toFixed(2)]
+        );
+        payslipsCount++;
+      }
+
+      // Update payrun status
       await client.query(
-        `INSERT INTO payslips (payrun_id, employee_id, working_days, present_days, leaves_approved,
-         basic, hra, special_allowance, gross_salary, pf_employee, pf_employer,
-         professional_tax, total_deductions, net_pay)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-        [payrun.id, emp.id, workingDays, presentDays, leavesApproved,
-         effectiveBasic.toFixed(2), hra.toFixed(2), specialAllowance.toFixed(2),
-         grossSalary.toFixed(2), pfEmployee.toFixed(2), pfEmployer.toFixed(2),
-         professionalTax.toFixed(2), totalDeductions.toFixed(2), netPay.toFixed(2)]
+        `UPDATE payruns SET status = 'finalized', generated_at = NOW() WHERE id = $1`,
+        [payrunId]
       );
-      payslipsCount++;
+
+      await client.query('COMMIT');
+
+      return { payrun_id: payrunId, payslips_generated_count: payslipsCount };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getPayruns() {
+    const result = await pool.query(
+      `SELECT p.*, u.full_name as generated_by_name,
+              (SELECT SUM(net_pay) FROM payslips WHERE payrun_id = p.id) as total_cost,
+              (SELECT COUNT(*) FROM payslips WHERE payrun_id = p.id) as employee_count
+       FROM payruns p
+       LEFT JOIN users u ON p.generated_by = u.id
+       ORDER BY p.year DESC, p.month DESC`
+    );
+    return result.rows;
+  }
+
+  async getPayrunPayslips(payrunId) {
+    const result = await pool.query(
+      `SELECT ps.*, u.full_name, u.email, u.department, u.designation
+       FROM payslips ps
+       JOIN users u ON ps.employee_id = u.id
+       WHERE ps.payrun_id = $1
+       ORDER BY u.full_name`,
+      [payrunId]
+    );
+    return result.rows;
+  }
+
+  async getMyPayslips(employeeId) {
+    const result = await pool.query(
+      `SELECT ps.*, p.month, p.year, p.status as payrun_status
+       FROM payslips ps
+       JOIN payruns p ON ps.payrun_id = p.id
+       WHERE ps.employee_id = $1
+       ORDER BY p.year DESC, p.month DESC`,
+      [employeeId]
+    );
+    return result.rows;
+  }
+
+  async getPayslipById(payslipId) {
+    const result = await pool.query(
+      `SELECT ps.*, p.month, p.year,
+              u.full_name, u.email, u.department, u.designation, u.date_joined, u.id as user_id
+       FROM payslips ps
+       JOIN payruns p ON ps.payrun_id = p.id
+       JOIN users u ON ps.employee_id = u.id
+       WHERE ps.id = $1`,
+      [payslipId]
+    );
+    if (result.rows.length === 0) {
+      throw { status: 404, message: 'Payslip not found' };
+    }
+    return result.rows[0];
+  }
+
+  _numberToWords(num) {
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+      'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    if (num === 0) return 'Zero';
+
+    const intPart = Math.floor(num);
+
+    const convert = (n) => {
+      if (n < 20) return ones[n];
+      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+      if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '');
+      if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
+      if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '');
+      return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '');
+    };
+
+    return convert(intPart);
+  }
+
+  async generatePayslipPDF(payslipId) {
+    const payslip = await this.getPayslipById(payslipId);
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+    // Header bar
+    doc.rect(50, 50, 495, 50).fill('#1E3A5F');
+    doc.fontSize(18).fillColor('#FFFFFF').text('EmPay Corp', 70, 62);
+    doc.fontSize(14).text('PAYSLIP', 250, 65, { align: 'center', width: 100 });
+    doc.fontSize(10).text(`${monthNames[payslip.month - 1]} ${payslip.year}`, 400, 68, { align: 'right', width: 130 });
+
+    // Employee Details
+    doc.fillColor('#333333');
+    doc.rect(50, 120, 495, 80).lineWidth(1).stroke('#CCCCCC');
+    doc.fontSize(10);
+    doc.text(`Employee Name: ${payslip.full_name}`, 70, 135);
+    doc.text(`Employee ID: ${payslip.user_id.substring(0, 8).toUpperCase()}`, 320, 135);
+    doc.text(`Department: ${payslip.department || 'N/A'}`, 70, 155);
+    doc.text(`Designation: ${payslip.designation || 'N/A'}`, 320, 155);
+    doc.text(`Date of Joining: ${payslip.date_joined ? new Date(payslip.date_joined).toLocaleDateString() : 'N/A'}`, 70, 175);
+
+    // Attendance summary
+    doc.rect(50, 220, 495, 30).fill('#F0F4F8');
+    doc.fillColor('#333333').fontSize(10);
+    doc.text(`Working Days: ${payslip.working_days}`, 70, 228);
+    doc.text(`Present Days: ${payslip.present_days}`, 220, 228);
+    doc.text(`Leave Days: ${payslip.leaves_approved}`, 400, 228);
+
+    // Earnings & Deductions
+    const leftX = 50;
+    const rightX = 300;
+    let y = 270;
+
+    // Earnings header
+    doc.rect(leftX, y, 240, 25).fill('#1E3A5F');
+    doc.fillColor('#FFFFFF').fontSize(11).text('EARNINGS', leftX + 10, y + 7);
+    doc.text('Amount (Rs.)', leftX + 140, y + 7, { align: 'right', width: 90 });
+
+    // Deductions header
+    doc.rect(rightX, y, 245, 25).fill('#1E3A5F');
+    doc.text('DEDUCTIONS', rightX + 10, y + 7);
+    doc.text('Amount (Rs.)', rightX + 140, y + 7, { align: 'right', width: 95 });
+
+    y += 30;
+    doc.fillColor('#333333').fontSize(10);
+
+    // Earnings items
+    const earnings = [
+      ['Basic Salary', parseFloat(payslip.basic).toFixed(2)],
+      [`HRA (40%)`, parseFloat(payslip.hra).toFixed(2)],
+      ['Special Allowance', parseFloat(payslip.special_allowance).toFixed(2)],
+    ];
+
+    const deductions = [
+      ['PF Employee (12%)', parseFloat(payslip.pf_employee).toFixed(2)],
+      ['Professional Tax', parseFloat(payslip.professional_tax).toFixed(2)],
+    ];
+
+    const maxRows = Math.max(earnings.length, deductions.length);
+    for (let i = 0; i < maxRows; i++) {
+      if (i < earnings.length) {
+        doc.text(earnings[i][0], leftX + 10, y);
+        doc.text(`Rs. ${earnings[i][1]}`, leftX + 140, y, { align: 'right', width: 90 });
+      }
+      if (i < deductions.length) {
+        doc.text(deductions[i][0], rightX + 10, y);
+        doc.text(`Rs. ${deductions[i][1]}`, rightX + 140, y, { align: 'right', width: 95 });
+      }
+      y += 20;
     }
 
-    await client.query('COMMIT');
-    return { payrun, payslips_generated_count: payslipsCount };
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
+    // Separator lines
+    y += 5;
+    doc.moveTo(leftX, y).lineTo(leftX + 240, y).stroke('#CCCCCC');
+    doc.moveTo(rightX, y).lineTo(rightX + 245, y).stroke('#CCCCCC');
+    y += 10;
+
+    // Totals
+    doc.font('Helvetica-Bold');
+    doc.text('Gross Salary', leftX + 10, y);
+    doc.text(`Rs. ${parseFloat(payslip.gross_salary).toFixed(2)}`, leftX + 140, y, { align: 'right', width: 90 });
+    doc.text('Total Deductions', rightX + 10, y);
+    doc.text(`Rs. ${parseFloat(payslip.total_deductions).toFixed(2)}`, rightX + 140, y, { align: 'right', width: 95 });
+
+    // Net Pay box
+    y += 40;
+    doc.rect(50, y, 495, 50).fill('#1E3A5F');
+    doc.fillColor('#FFFFFF').fontSize(16).font('Helvetica-Bold');
+    doc.text(`Net Pay: Rs. ${parseFloat(payslip.net_pay).toFixed(2)}`, 70, y + 15, { width: 455, align: 'center' });
+
+    // Amount in words
+    y += 60;
+    doc.fillColor('#333333').fontSize(10).font('Helvetica');
+    doc.text(`Amount in words: Rupees ${this._numberToWords(parseFloat(payslip.net_pay))} Only`, 50, y);
+
+    // Footer
+    y += 40;
+    doc.fontSize(8).fillColor('#999999');
+    doc.text('This is a computer-generated payslip. No signature required.', 50, y, { align: 'center', width: 495 });
+
+    doc.end();
+    return { doc, filename: `payslip_${monthNames[payslip.month - 1]}_${payslip.year}.pdf` };
   }
-};
+}
 
-const getAllPayruns = async () => {
-  const result = await pool.query(
-    `SELECT p.*, u.full_name AS generated_by_name,
-            COALESCE(SUM(ps.net_pay), 0) AS total_cost,
-            COUNT(ps.id) AS payslip_count
-     FROM payruns p
-     LEFT JOIN users u ON p.generated_by = u.id
-     LEFT JOIN payslips ps ON p.id = ps.payrun_id
-     GROUP BY p.id, u.full_name
-     ORDER BY p.year DESC, p.month DESC`
-  );
-  return result.rows;
-};
-
-const getPayrunPayslips = async (payrunId) => {
-  const result = await pool.query(
-    `SELECT ps.*, u.full_name, u.email, u.department, u.designation
-     FROM payslips ps
-     JOIN users u ON ps.employee_id = u.id
-     WHERE ps.payrun_id = $1
-     ORDER BY u.full_name`,
-    [payrunId]
-  );
-  return result.rows;
-};
-
-const getMyPayslips = async (employeeId) => {
-  const result = await pool.query(
-    `SELECT ps.*, p.month, p.year, p.status AS payrun_status
-     FROM payslips ps
-     JOIN payruns p ON ps.payrun_id = p.id
-     WHERE ps.employee_id = $1
-     ORDER BY p.year DESC, p.month DESC`,
-    [employeeId]
-  );
-  return result.rows;
-};
-
-const getPayslipById = async (payslipId) => {
-  const result = await pool.query(
-    `SELECT ps.*, p.month, p.year, p.status AS payrun_status,
-            u.full_name, u.email, u.department, u.designation, u.date_joined
-     FROM payslips ps
-     JOIN payruns p ON ps.payrun_id = p.id
-     JOIN users u ON ps.employee_id = u.id
-     WHERE ps.id = $1`,
-    [payslipId]
-  );
-  if (result.rows.length === 0) throw { status: 404, message: 'Payslip not found.' };
-  return result.rows[0];
-};
-
-const finalizePayrun = async (payrunId) => {
-  const result = await pool.query(
-    `UPDATE payruns SET status = 'finalized' WHERE id = $1 RETURNING *`,
-    [payrunId]
-  );
-  if (result.rows.length === 0) throw { status: 404, message: 'Payrun not found.' };
-  return result.rows[0];
-};
-
-// ---------- PDF Generation ----------
-const numberToWords = (num) => {
-  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-  if (num === 0) return 'Zero';
-  const n = Math.floor(Math.abs(num));
-
-  const convert = (n) => {
-    if (n < 20) return ones[n];
-    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
-    if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '');
-    if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
-    if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '');
-    return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '');
-  };
-
-  return 'Rupees ' + convert(n) + ' Only';
-};
-
-const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-const generatePayslipPDF = async (payslipId) => {
-  const payslip = await getPayslipById(payslipId);
-
-  const doc = new PDFDocument({ size: 'A4', margin: 40 });
-
-  // Header bar
-  doc.rect(40, 40, 515, 50).fill('#1E3A5F');
-  doc.fontSize(18).fillColor('white').text('EmPay Corp', 55, 52);
-  doc.fontSize(14).text('PAYSLIP', 250, 55, { align: 'center', width: 100 });
-  doc.fontSize(10).text(`${monthNames[payslip.month - 1]} ${payslip.year}`, 400, 58, { align: 'right', width: 140 });
-
-  // Employee details box
-  doc.fillColor('#333');
-  doc.rect(40, 105, 515, 80).stroke('#ddd');
-  doc.fontSize(10)
-    .text(`Employee Name: ${payslip.full_name}`, 55, 115)
-    .text(`Department: ${payslip.department || 'N/A'}`, 320, 115)
-    .text(`Designation: ${payslip.designation || 'N/A'}`, 55, 135)
-    .text(`Email: ${payslip.email}`, 320, 135)
-    .text(`Date of Joining: ${new Date(payslip.date_joined).toLocaleDateString('en-IN')}`, 55, 155)
-    .text(`Working Days: ${payslip.working_days} | Present: ${payslip.present_days} | Leaves: ${payslip.leaves_approved}`, 320, 155);
-
-  // Earnings and Deductions
-  const tableY = 205;
-
-  // Earnings header
-  doc.rect(40, tableY, 257, 25).fill('#f0f4ff');
-  doc.fillColor('#1E3A5F').fontSize(11).text('EARNINGS', 55, tableY + 7);
-
-  // Deductions header
-  doc.rect(297, tableY, 258, 25).fill('#fff0f0');
-  doc.fillColor('#c0392b').text('DEDUCTIONS', 312, tableY + 7);
-
-  doc.fillColor('#333').fontSize(10);
-
-  // Earnings rows
-  let y = tableY + 35;
-  const earningsItems = [
-    ['Basic Salary', payslip.basic],
-    [`HRA (${40}%)`, payslip.hra],
-    ['Special Allowance', payslip.special_allowance],
-  ];
-
-  for (const [label, value] of earningsItems) {
-    doc.text(label, 55, y);
-    doc.text(`Rs. ${parseFloat(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 180, y, { align: 'right', width: 100 });
-    y += 20;
-  }
-
-  // Earnings separator
-  doc.moveTo(55, y).lineTo(280, y).stroke('#ccc');
-  y += 8;
-  doc.font('Helvetica-Bold').text('Gross Salary', 55, y);
-  doc.text(`Rs. ${parseFloat(payslip.gross_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 180, y, { align: 'right', width: 100 });
-
-  // Deductions rows
-  y = tableY + 35;
-  const deductionItems = [
-    ['PF Employee (12%)', payslip.pf_employee],
-    ['Professional Tax', payslip.professional_tax],
-  ];
-
-  for (const [label, value] of deductionItems) {
-    doc.font('Helvetica').text(label, 312, y);
-    doc.text(`Rs. ${parseFloat(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 440, y, { align: 'right', width: 100 });
-    y += 20;
-  }
-
-  // PF Employer info
-  doc.fontSize(8).fillColor('#888').text(`(PF Employer: Rs. ${parseFloat(payslip.pf_employer).toLocaleString('en-IN', { minimumFractionDigits: 2 })})`, 312, y);
-  y += 15;
-
-  // Deductions separator
-  doc.moveTo(312, y).lineTo(540, y).stroke('#ccc');
-  y += 8;
-  doc.fillColor('#333').fontSize(10).font('Helvetica-Bold').text('Total Deductions', 312, y);
-  doc.text(`Rs. ${parseFloat(payslip.total_deductions).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 440, y, { align: 'right', width: 100 });
-
-  // Net Pay box
-  const netPayY = Math.max(y, tableY + 35 + earningsItems.length * 20 + 30) + 40;
-  doc.rect(40, netPayY, 515, 45).fill('#1E3A5F');
-  doc.fillColor('white').fontSize(16).font('Helvetica-Bold');
-  doc.text(`Net Pay: Rs. ${parseFloat(payslip.net_pay).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 55, netPayY + 14, { align: 'center', width: 485 });
-
-  // Amount in words
-  doc.fillColor('#555').fontSize(10).font('Helvetica');
-  doc.text(numberToWords(parseFloat(payslip.net_pay)), 55, netPayY + 60);
-
-  // Footer
-  doc.fillColor('#999').fontSize(8);
-  doc.text('This is a computer-generated payslip. No signature required.', 55, 740, { align: 'center', width: 485 });
-
-  return { doc, payslip };
-};
-
-module.exports = {
-  upsertSalaryStructure, getAllSalaryStructures, getSalaryStructure,
-  generatePayrun, getAllPayruns, getPayrunPayslips, getMyPayslips,
-  getPayslipById, finalizePayrun, generatePayslipPDF, monthNames,
-};
+module.exports = new PayrollService();

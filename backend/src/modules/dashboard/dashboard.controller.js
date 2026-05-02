@@ -1,248 +1,269 @@
 const { pool } = require('../../config/db');
 
-const getAdminDashboard = async () => {
-  const today = new Date().toISOString().split('T')[0];
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+const getAdminDashboard = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
 
-  // Employee counts
-  const empCount = await pool.query(
-    `SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_active = true) AS active FROM users`
-  );
+    // Employee counts
+    const empCounts = await pool.query(`
+      SELECT
+        COUNT(*) as total_employees,
+        COUNT(*) FILTER (WHERE is_active = true) as active_employees,
+        COUNT(DISTINCT department) as departments_count
+      FROM users
+    `);
 
-  // Department count
-  const deptCount = await pool.query(
-    `SELECT COUNT(DISTINCT department) AS count FROM users WHERE department IS NOT NULL AND is_active = true`
-  );
+    // Today's attendance
+    const todayAtt = await pool.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE a.status = 'present' OR a.status = 'half_day') as today_present,
+        COUNT(*) FILTER (WHERE a.status = 'on_leave') as today_on_leave
+      FROM attendance a
+      WHERE a.date = $1
+    `, [today]);
 
-  // Today's attendance
-  const todayAttendance = await pool.query(
-    `SELECT
-       COUNT(*) FILTER (WHERE a.status = 'present' OR a.status = 'half_day') AS present,
-       COUNT(*) FILTER (WHERE a.status = 'on_leave') AS on_leave
-     FROM attendance a
-     JOIN users u ON a.employee_id = u.id
-     WHERE a.date = $1 AND u.is_active = true`,
-    [today]
-  );
+    const totalActive = parseInt(empCounts.rows[0].active_employees);
+    const todayPresent = parseInt(todayAtt.rows[0].today_present) || 0;
+    const todayOnLeave = parseInt(todayAtt.rows[0].today_on_leave) || 0;
+    const todayAbsent = totalActive - todayPresent - todayOnLeave;
 
-  const totalActive = parseInt(empCount.rows[0].active);
-  const todayPresent = parseInt(todayAttendance.rows[0].present || 0);
-  const todayOnLeave = parseInt(todayAttendance.rows[0].on_leave || 0);
-  const todayAbsent = totalActive - todayPresent - todayOnLeave;
+    // Pending leave requests
+    const pendingLeaves = await pool.query(
+      `SELECT COUNT(*) as count FROM leave_requests WHERE status = 'pending'`
+    );
 
-  // Pending leaves
-  const pendingLeaves = await pool.query(
-    `SELECT COUNT(*) AS count FROM leave_requests WHERE status = 'pending'`
-  );
+    // Monthly payroll cost
+    const payrollCost = await pool.query(`
+      SELECT COALESCE(SUM(ps.net_pay), 0) as monthly_payroll_cost
+      FROM payslips ps
+      JOIN payruns p ON ps.payrun_id = p.id
+      WHERE p.month = $1 AND p.year = $2
+    `, [currentMonth, currentYear]);
 
-  // Monthly payroll
-  const monthlyPayroll = await pool.query(
-    `SELECT COALESCE(SUM(ps.net_pay), 0) AS total
-     FROM payslips ps
-     JOIN payruns p ON ps.payrun_id = p.id
-     WHERE p.month = $1 AND p.year = $2`,
-    [currentMonth, currentYear]
-  );
+    // Attendance trend (last 7 days)
+    const attendanceTrend = await pool.query(`
+      SELECT
+        a.date,
+        COUNT(*) FILTER (WHERE a.status = 'present') as present,
+        COUNT(*) FILTER (WHERE a.status = 'absent') as absent,
+        COUNT(*) FILTER (WHERE a.status = 'on_leave') as on_leave
+      FROM attendance a
+      WHERE a.date >= CURRENT_DATE - INTERVAL '7 days'
+      GROUP BY a.date
+      ORDER BY a.date
+    `);
 
-  // Attendance trend (last 7 weekdays)
-  const trendResult = await pool.query(
-    `SELECT a.date,
-       COUNT(*) FILTER (WHERE a.status = 'present' OR a.status = 'half_day') AS present,
-       COUNT(*) FILTER (WHERE a.status = 'absent') AS absent,
-       COUNT(*) FILTER (WHERE a.status = 'on_leave') AS on_leave
-     FROM attendance a
-     JOIN users u ON a.employee_id = u.id
-     WHERE a.date >= CURRENT_DATE - INTERVAL '10 days' AND u.is_active = true
-     GROUP BY a.date
-     ORDER BY a.date DESC
-     LIMIT 7`
-  );
+    // Department headcount
+    const deptHeadcount = await pool.query(`
+      SELECT department, COUNT(*) as count
+      FROM users WHERE is_active = true AND department IS NOT NULL
+      GROUP BY department ORDER BY count DESC
+    `);
 
-  // Department headcount
-  const deptHeadcount = await pool.query(
-    `SELECT department, COUNT(*) AS count FROM users
-     WHERE is_active = true AND department IS NOT NULL
-     GROUP BY department ORDER BY count DESC`
-  );
+    // Leave type distribution
+    const leaveDistribution = await pool.query(`
+      SELECT lt.name, COALESCE(SUM(la.used_days), 0) as used_days
+      FROM leave_types lt
+      LEFT JOIN leave_allocations la ON lt.id = la.leave_type_id AND la.year = $1
+      GROUP BY lt.name
+    `, [currentYear]);
 
-  // Leave type distribution
-  const leaveDistribution = await pool.query(
-    `SELECT lt.name, COALESCE(SUM(la.used_days), 0) AS used_days
-     FROM leave_types lt
-     LEFT JOIN leave_allocations la ON lt.id = la.leave_type_id AND la.year = $1
-     GROUP BY lt.name`,
-    [currentYear]
-  );
-
-  return {
-    total_employees: parseInt(empCount.rows[0].total),
-    active_employees: totalActive,
-    departments_count: parseInt(deptCount.rows[0].count),
-    today_present: todayPresent,
-    today_absent: todayAbsent > 0 ? todayAbsent : 0,
-    today_on_leave: todayOnLeave,
-    pending_leave_requests: parseInt(pendingLeaves.rows[0].count),
-    monthly_payroll_cost: parseFloat(monthlyPayroll.rows[0].total),
-    attendance_trend: trendResult.rows.reverse(),
-    department_headcount: deptHeadcount.rows,
-    leave_type_distribution: leaveDistribution.rows,
-  };
-};
-
-const getEmployeeDashboard = async (employeeId) => {
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  // Attendance this month
-  const attendanceSummary = await pool.query(
-    `SELECT
-       COUNT(*) FILTER (WHERE status = 'present') AS present,
-       COUNT(*) FILTER (WHERE status = 'absent') AS absent,
-       COUNT(*) FILTER (WHERE status = 'half_day') AS half_day,
-       COUNT(*) FILTER (WHERE status = 'on_leave') AS on_leave
-     FROM attendance
-     WHERE employee_id = $1 AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3`,
-    [employeeId, currentMonth, currentYear]
-  );
-
-  // Working days
-  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-  let workingDays = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const day = new Date(currentYear, currentMonth - 1, d).getDay();
-    if (day !== 0 && day !== 6) workingDays++;
+    res.json({
+      success: true,
+      message: 'Admin dashboard data fetched',
+      data: {
+        total_employees: parseInt(empCounts.rows[0].total_employees),
+        active_employees: totalActive,
+        departments_count: parseInt(empCounts.rows[0].departments_count),
+        today_present: todayPresent,
+        today_absent: todayAbsent > 0 ? todayAbsent : 0,
+        today_on_leave: todayOnLeave,
+        pending_leave_requests: parseInt(pendingLeaves.rows[0].count),
+        monthly_payroll_cost: parseFloat(payrollCost.rows[0].monthly_payroll_cost),
+        attendance_trend: attendanceTrend.rows,
+        department_headcount: deptHeadcount.rows,
+        leave_type_distribution: leaveDistribution.rows,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-
-  // Leave balance
-  const leaveBalance = await pool.query(
-    `SELECT la.*, lt.name AS leave_type_name,
-            la.allocated_days - la.used_days AS remaining
-     FROM leave_allocations la
-     JOIN leave_types lt ON la.leave_type_id = lt.id
-     WHERE la.employee_id = $1 AND la.year = $2`,
-    [employeeId, currentYear]
-  );
-
-  // Last payslip
-  const lastPayslip = await pool.query(
-    `SELECT ps.*, p.month, p.year
-     FROM payslips ps
-     JOIN payruns p ON ps.payrun_id = p.id
-     WHERE ps.employee_id = $1
-     ORDER BY p.year DESC, p.month DESC LIMIT 1`,
-    [employeeId]
-  );
-
-  // Recent attendance (last 7 days)
-  const recentAttendance = await pool.query(
-    `SELECT date, status, check_in, check_out
-     FROM attendance
-     WHERE employee_id = $1
-     ORDER BY date DESC LIMIT 7`,
-    [employeeId]
-  );
-
-  return {
-    attendance_this_month: {
-      ...attendanceSummary.rows[0],
-      total_working_days: workingDays,
-    },
-    leave_balance: leaveBalance.rows,
-    last_payslip: lastPayslip.rows[0] || null,
-    recent_attendance: recentAttendance.rows,
-  };
 };
 
-const getHRDashboard = async () => {
-  const today = new Date().toISOString().split('T')[0];
+const getEmployeeDashboard = async (req, res) => {
+  try {
+    const employeeId = req.user.id;
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const today = now.toISOString().split('T')[0];
 
-  const empCount = await pool.query(
-    `SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_active = true) AS active FROM users`
-  );
+    // Attendance this month
+    const attSummary = await pool.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'present') as present,
+        COUNT(*) FILTER (WHERE status = 'absent') as absent,
+        COUNT(*) FILTER (WHERE status = 'half_day') as half_day,
+        COUNT(*) FILTER (WHERE status = 'on_leave') as on_leave,
+        COUNT(*) as total_working_days
+      FROM attendance
+      WHERE employee_id = $1
+        AND EXTRACT(MONTH FROM date) = $2
+        AND EXTRACT(YEAR FROM date) = $3
+    `, [employeeId, currentMonth, currentYear]);
 
-  const pendingLeaves = await pool.query(
-    `SELECT COUNT(*) AS count FROM leave_requests WHERE status = 'pending'`
-  );
+    // Leave balance
+    const leaveBalance = await pool.query(`
+      SELECT lt.name as leave_type, la.allocated_days as allocated,
+             la.used_days as used, (la.allocated_days - la.used_days) as remaining
+      FROM leave_allocations la
+      JOIN leave_types lt ON la.leave_type_id = lt.id
+      WHERE la.employee_id = $1 AND la.year = $2
+    `, [employeeId, currentYear]);
 
-  const todaySummary = await pool.query(
-    `SELECT
-       COUNT(*) FILTER (WHERE a.status = 'present' OR a.status = 'half_day') AS present,
-       COUNT(*) FILTER (WHERE a.status = 'absent') AS absent,
-       COUNT(*) FILTER (WHERE a.status = 'on_leave') AS on_leave
-     FROM attendance a
-     JOIN users u ON a.employee_id = u.id
-     WHERE a.date = $1 AND u.is_active = true`,
-    [today]
-  );
+    // Last payslip
+    const lastPayslip = await pool.query(`
+      SELECT p.month, p.year, ps.gross_salary, ps.net_pay
+      FROM payslips ps
+      JOIN payruns p ON ps.payrun_id = p.id
+      WHERE ps.employee_id = $1
+      ORDER BY p.year DESC, p.month DESC LIMIT 1
+    `, [employeeId]);
 
-  const onLeaveToday = await pool.query(
-    `SELECT u.id, u.full_name, u.department, u.designation
-     FROM attendance a
-     JOIN users u ON a.employee_id = u.id
-     WHERE a.date = $1 AND a.status = 'on_leave'`,
-    [today]
-  );
+    // Recent attendance (last 7 days)
+    const recentAtt = await pool.query(`
+      SELECT date, status, check_in, check_out
+      FROM attendance
+      WHERE employee_id = $1
+      ORDER BY date DESC LIMIT 7
+    `, [employeeId]);
 
-  const recentLeaves = await pool.query(
-    `SELECT lr.*, lt.name AS leave_type_name, u.full_name AS employee_name, u.department
-     FROM leave_requests lr
-     JOIN leave_types lt ON lr.leave_type_id = lt.id
-     JOIN users u ON lr.employee_id = u.id
-     ORDER BY lr.created_at DESC LIMIT 10`
-  );
+    // Today's attendance
+    const todayAtt = await pool.query(`
+      SELECT * FROM attendance WHERE employee_id = $1 AND date = $2
+    `, [employeeId, today]);
 
-  return {
-    total_employees: parseInt(empCount.rows[0].total),
-    active_employees: parseInt(empCount.rows[0].active),
-    pending_leave_requests: parseInt(pendingLeaves.rows[0].count),
-    today_summary: todaySummary.rows[0],
-    on_leave_today: onLeaveToday.rows,
-    recent_leave_requests: recentLeaves.rows,
-  };
+    res.json({
+      success: true,
+      message: 'Employee dashboard data fetched',
+      data: {
+        attendance_this_month: attSummary.rows[0],
+        leave_balance: leaveBalance.rows,
+        last_payslip: lastPayslip.rows[0] || null,
+        recent_attendance: recentAtt.rows,
+        today_attendance: todayAtt.rows[0] || null,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-const getPayrollDashboard = async () => {
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+const getHRDashboard = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
 
-  const pendingApprovals = await pool.query(
-    `SELECT COUNT(*) AS count FROM leave_requests WHERE status = 'pending'`
-  );
+    const empCounts = await pool.query(`
+      SELECT
+        COUNT(*) as total_employees,
+        COUNT(*) FILTER (WHERE is_active = true) as active_employees
+      FROM users
+    `);
 
-  const thisMonthPayrun = await pool.query(
-    `SELECT * FROM payruns WHERE month = $1 AND year = $2`,
-    [currentMonth, currentYear]
-  );
+    const pendingLeaves = await pool.query(
+      `SELECT COUNT(*) as count FROM leave_requests WHERE status = 'pending'`
+    );
 
-  const totalCost = await pool.query(
-    `SELECT COALESCE(SUM(ps.net_pay), 0) AS total
-     FROM payslips ps
-     JOIN payruns p ON ps.payrun_id = p.id
-     WHERE p.month = $1 AND p.year = $2`,
-    [currentMonth, currentYear]
-  );
+    const todaySummary = await pool.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE a.status = 'present' OR a.status = 'half_day') as present,
+        COUNT(*) FILTER (WHERE a.status = 'absent') as absent,
+        COUNT(*) FILTER (WHERE a.status = 'on_leave') as on_leave
+      FROM attendance a WHERE a.date = $1
+    `, [today]);
 
-  const recentPayruns = await pool.query(
-    `SELECT p.*, u.full_name AS generated_by_name,
-            COALESCE(SUM(ps.net_pay), 0) AS total_cost,
-            COUNT(ps.id) AS payslip_count
-     FROM payruns p
-     LEFT JOIN users u ON p.generated_by = u.id
-     LEFT JOIN payslips ps ON p.id = ps.payrun_id
-     GROUP BY p.id, u.full_name
-     ORDER BY p.year DESC, p.month DESC LIMIT 5`
-  );
+    const onLeaveToday = await pool.query(`
+      SELECT u.id, u.full_name, u.department, u.designation
+      FROM users u
+      JOIN attendance a ON u.id = a.employee_id
+      WHERE a.date = $1 AND a.status = 'on_leave'
+    `, [today]);
 
-  const empCount = await pool.query(`SELECT COUNT(*) AS count FROM users WHERE is_active = true`);
+    const recentRequests = await pool.query(`
+      SELECT lr.*, lt.name as leave_type_name, u.full_name, u.department
+      FROM leave_requests lr
+      JOIN leave_types lt ON lr.leave_type_id = lt.id
+      JOIN users u ON lr.employee_id = u.id
+      ORDER BY lr.created_at DESC LIMIT 10
+    `);
 
-  return {
-    pending_leave_approvals: parseInt(pendingApprovals.rows[0].count),
-    this_month_payrun: thisMonthPayrun.rows[0] || null,
-    total_payroll_cost_this_month: parseFloat(totalCost.rows[0].total),
-    recent_payruns: recentPayruns.rows,
-    employees_count: parseInt(empCount.rows[0].count),
-  };
+    res.json({
+      success: true,
+      message: 'HR dashboard data fetched',
+      data: {
+        total_employees: parseInt(empCounts.rows[0].total_employees),
+        active_employees: parseInt(empCounts.rows[0].active_employees),
+        pending_leave_requests: parseInt(pendingLeaves.rows[0].count),
+        today_summary: todaySummary.rows[0],
+        on_leave_today: onLeaveToday.rows,
+        recent_leave_requests: recentRequests.rows,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getPayrollDashboard = async (req, res) => {
+  try {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const pendingApprovals = await pool.query(
+      `SELECT COUNT(*) as count FROM leave_requests WHERE status = 'pending'`
+    );
+
+    const thisMonthPayrun = await pool.query(
+      `SELECT * FROM payruns WHERE month = $1 AND year = $2`,
+      [currentMonth, currentYear]
+    );
+
+    const totalCost = await pool.query(`
+      SELECT COALESCE(SUM(ps.net_pay), 0) as total
+      FROM payslips ps
+      JOIN payruns p ON ps.payrun_id = p.id
+      WHERE p.month = $1 AND p.year = $2
+    `, [currentMonth, currentYear]);
+
+    const recentPayruns = await pool.query(`
+      SELECT p.*, u.full_name as generated_by_name,
+             (SELECT SUM(net_pay) FROM payslips WHERE payrun_id = p.id) as total_cost,
+             (SELECT COUNT(*) FROM payslips WHERE payrun_id = p.id) as employee_count
+      FROM payruns p
+      LEFT JOIN users u ON p.generated_by = u.id
+      ORDER BY p.year DESC, p.month DESC LIMIT 5
+    `);
+
+    const empCount = await pool.query(`SELECT COUNT(*) as count FROM users WHERE is_active = true`);
+
+    res.json({
+      success: true,
+      message: 'Payroll dashboard data fetched',
+      data: {
+        pending_leave_approvals: parseInt(pendingApprovals.rows[0].count),
+        this_month_payrun: thisMonthPayrun.rows[0] || null,
+        total_payroll_cost_this_month: parseFloat(totalCost.rows[0].total),
+        recent_payruns: recentPayruns.rows,
+        employees_count: parseInt(empCount.rows[0].count),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 module.exports = { getAdminDashboard, getEmployeeDashboard, getHRDashboard, getPayrollDashboard };

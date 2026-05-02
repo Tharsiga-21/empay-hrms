@@ -4,11 +4,12 @@ import Topbar from './Topbar';
 
 export default function AppLayout() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex">
+      <div className="mesh-gradient" />
       <Sidebar />
-      <div className="ml-[250px] transition-all duration-300">
+      <div className="flex-1 ml-64 flex flex-col">
         <Topbar />
-        <main className="p-6">
+        <main className="flex-1 p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

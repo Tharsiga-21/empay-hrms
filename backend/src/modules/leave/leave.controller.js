@@ -3,16 +3,16 @@ const leaveService = require('./leave.service');
 const getLeaveTypes = async (req, res) => {
   try {
     const data = await leaveService.getLeaveTypes();
-    res.json({ success: true, message: 'Leave types fetched.', data });
+    res.json({ success: true, message: 'Leave types fetched', data });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 
 const createLeaveType = async (req, res) => {
   try {
     const data = await leaveService.createLeaveType(req.body);
-    res.status(201).json({ success: true, message: 'Leave type created.', data });
+    res.status(201).json({ success: true, message: 'Leave type created', data });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message });
   }
@@ -20,71 +20,71 @@ const createLeaveType = async (req, res) => {
 
 const getMyAllocations = async (req, res) => {
   try {
-    const data = await leaveService.getMyAllocations(req.user.id, req.query.year);
-    res.json({ success: true, message: 'Leave allocations fetched.', data });
+    const data = await leaveService.getMyAllocations(req.user.id);
+    res.json({ success: true, message: 'Allocations fetched', data });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 
-const getAllocationByEmployee = async (req, res) => {
+const getAllocationsByEmployee = async (req, res) => {
   try {
-    const data = await leaveService.getAllocationByEmployee(req.params.employee_id, req.query.year);
-    res.json({ success: true, message: 'Leave allocations fetched.', data });
+    const data = await leaveService.getAllocationsByEmployee(req.params.employee_id);
+    res.json({ success: true, message: 'Allocations fetched', data });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 
 const upsertAllocation = async (req, res) => {
   try {
     const data = await leaveService.upsertAllocation(req.body);
-    res.json({ success: true, message: 'Leave allocation updated.', data });
+    res.json({ success: true, message: 'Allocation saved', data });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 
-const createLeaveRequest = async (req, res) => {
+const createRequest = async (req, res) => {
   try {
-    const data = await leaveService.createLeaveRequest(req.user.id, req.body);
-    res.status(201).json({ success: true, message: 'Leave request submitted.', data });
+    const data = await leaveService.createRequest(req.user.id, req.body);
+    res.status(201).json({ success: true, message: 'Leave request submitted', data });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 
-const getMyLeaveRequests = async (req, res) => {
+const getMyRequests = async (req, res) => {
   try {
-    const data = await leaveService.getMyLeaveRequests(req.user.id);
-    res.json({ success: true, message: 'Leave requests fetched.', data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const getAllLeaveRequests = async (req, res) => {
-  try {
-    const data = await leaveService.getAllLeaveRequests(req.query);
-    res.json({ success: true, message: 'All leave requests fetched.', data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const approveLeaveRequest = async (req, res) => {
-  try {
-    const data = await leaveService.approveLeaveRequest(req.params.id, req.user.id);
-    res.json({ success: true, message: 'Leave request approved.', data });
+    const data = await leaveService.getMyRequests(req.user.id);
+    res.json({ success: true, message: 'Requests fetched', data });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message });
   }
 };
 
-const rejectLeaveRequest = async (req, res) => {
+const getAllRequests = async (req, res) => {
   try {
-    const data = await leaveService.rejectLeaveRequest(req.params.id, req.user.id);
-    res.json({ success: true, message: 'Leave request rejected.', data });
+    const data = await leaveService.getAllRequests(req.query);
+    res.json({ success: true, message: 'All requests fetched', data });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+};
+
+const approveRequest = async (req, res) => {
+  try {
+    const data = await leaveService.approveRequest(req.params.id, req.user.id);
+    res.json({ success: true, message: 'Leave approved', data });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+};
+
+const rejectRequest = async (req, res) => {
+  try {
+    const data = await leaveService.rejectRequest(req.params.id, req.user.id);
+    res.json({ success: true, message: 'Leave rejected', data });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message });
   }
@@ -92,7 +92,7 @@ const rejectLeaveRequest = async (req, res) => {
 
 module.exports = {
   getLeaveTypes, createLeaveType,
-  getMyAllocations, getAllocationByEmployee, upsertAllocation,
-  createLeaveRequest, getMyLeaveRequests, getAllLeaveRequests,
-  approveLeaveRequest, rejectLeaveRequest,
+  getMyAllocations, getAllocationsByEmployee, upsertAllocation,
+  createRequest, getMyRequests, getAllRequests,
+  approveRequest, rejectRequest,
 };

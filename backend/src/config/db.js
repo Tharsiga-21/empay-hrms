@@ -10,7 +10,7 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
-const createTables = async () => {
+const initTables = async () => {
   const client = await pool.connect();
   try {
     await client.query(`
@@ -113,24 +113,13 @@ const createTables = async () => {
         UNIQUE(payrun_id, employee_id)
       );
     `);
-    console.log('✅ All tables created successfully');
+    console.log('✅ All tables initialized successfully');
   } catch (err) {
-    console.error('Error creating tables:', err.message);
+    console.error('❌ Error initializing tables:', err.message);
     throw err;
   } finally {
     client.release();
   }
 };
 
-// If run directly, create tables
-if (process.argv.includes('--migrate')) {
-  createTables().then(() => {
-    console.log('Migration complete');
-    process.exit(0);
-  }).catch((err) => {
-    console.error('Migration failed:', err);
-    process.exit(1);
-  });
-}
-
-module.exports = { pool, createTables };
+module.exports = { pool, initTables };

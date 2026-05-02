@@ -1,148 +1,139 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/shared/PageHeader';
-import StatusBadge from '../../components/shared/StatusBadge';
-import { Plus, Eye, Download, X, Loader2 } from 'lucide-react';
-
-const monthNames = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+import { PlayCircle, Download, X, Loader2, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Payruns() {
   const [payruns, setPayruns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showGenerate, setShowGenerate] = useState(false);
+  const [showGen, setShowGen] = useState(false);
+  const [genForm, setGenForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [generating, setGenerating] = useState(false);
-  const [genForm, setGenForm] = useState({ month: new Date().getMonth()+1, year: new Date().getFullYear() });
   const [viewPayslips, setViewPayslips] = useState(null);
   const [payslips, setPayslips] = useState([]);
-  const [payslipsLoading, setPayslipsLoading] = useState(false);
+  const [loadingSlips, setLoadingSlips] = useState(false);
 
-  const fetchPayruns = async () => {
-    try { const res = await api.get('/payroll/payruns'); setPayruns(res.data.data); }
-    catch(e){console.error(e);} finally{setLoading(false);}
-  };
-  useEffect(()=>{fetchPayruns();},[]);
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  useEffect(() => {
+    api.get('/payroll/payruns').then(res => { setPayruns(res.data.data); setLoading(false); }).catch(() => setLoading(false));
+  }, []);
 
   const handleGenerate = async (e) => {
-    e.preventDefault(); setGenerating(true);
-    try { await api.post('/payroll/payrun/generate', genForm); setShowGenerate(false); fetchPayruns(); }
-    catch(err){alert(err.response?.data?.message||'Failed');}
-    finally{setGenerating(false);}
-  };
-
-  const handleViewPayslips = async (payrunId) => {
-    setViewPayslips(payrunId); setPayslipsLoading(true);
-    try { const res = await api.get(`/payroll/payruns/${payrunId}/payslips`); setPayslips(res.data.data); }
-    catch(e){console.error(e);} finally{setPayslipsLoading(false);}
-  };
-
-  const handleDownloadPDF = async (payslipId) => {
+    e.preventDefault();
+    setGenerating(true);
     try {
-      const res = await api.get(`/payroll/payslips/${payslipId}/pdf`, {responseType:'blob'});
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a'); a.href=url; a.download=`payslip.pdf`; a.click();
-      window.URL.revokeObjectURL(url);
-    } catch(e){alert('Failed to download');}
+      const res = await api.post('/payroll/payrun/generate', genForm);
+      toast.success(`Payrun generated! ${res.data.data.payslips_generated_count} payslips created.`);
+      setShowGen(false);
+      const r = await api.get('/payroll/payruns');
+      setPayruns(r.data.data);
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    setGenerating(false);
   };
 
-  const handleFinalize = async (id) => {
-    if(!window.confirm('Finalize this payrun?')) return;
-    try { await api.patch(`/payroll/payruns/${id}/finalize`); fetchPayruns(); }
-    catch(err){alert(err.response?.data?.message||'Failed');}
+  const openPayslips = async (payrun) => {
+    setViewPayslips(payrun);
+    setLoadingSlips(true);
+    try {
+      const res = await api.get(`/payroll/payruns/${payrun.id}/payslips`);
+      setPayslips(res.data.data);
+    } catch { /* empty */ }
+    setLoadingSlips(false);
+  };
+
+  const downloadPDF = async (payslipId) => {
+    try {
+      const res = await api.get(`/payroll/payslips/${payslipId}/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `payslip_${payslipId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch { toast.error('Failed to download PDF'); }
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader title="Payruns" subtitle="Generate and manage payroll runs">
-        <button onClick={()=>setShowGenerate(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">
-          <Plus className="w-4 h-4"/>Generate Payrun
+    <div className="space-y-6">
+      <PageHeader title="Payruns" subtitle="Generate and manage monthly payruns.">
+        <button onClick={() => setShowGen(true)} className="btn-glow flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg,#4d8eff,#571bc1)' }}>
+          <PlayCircle className="w-4 h-4" /> Generate Payrun
         </button>
       </PageHeader>
 
-      <div className="glass-card rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead><tr className="border-b border-slate-800">
-            {['Period','Status','Employees','Total Cost','Generated By','Actions'].map(h=>(
-              <th key={h} className="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-500">{h}</th>
+      <div className="glass-card overflow-hidden fade-in">
+        <table className="w-full glass-table">
+          <thead><tr><th>Month / Year</th><th>Status</th><th>Employees</th><th>Total Cost</th><th>Generated By</th><th>Actions</th></tr></thead>
+          <tbody>
+            {loading ? Array.from({length:3}).map((_,i) => <tr key={i}>{Array.from({length:6}).map((_,j)=><td key={j}><div className="skeleton h-4 w-20 rounded"/></td>)}</tr>) :
+            payruns.length === 0 ? <tr><td colSpan={6} className="text-center py-12 text-on-surface-variant">No payruns yet</td></tr> :
+            payruns.map(p => (
+              <tr key={p.id}>
+                <td className="font-medium text-on-surface">{months[p.month - 1]} {p.year}</td>
+                <td><span className={`chip-${p.status} inline-flex px-2 py-0.5 rounded-full text-xs font-semibold capitalize`}>{p.status}</span></td>
+                <td>{p.employee_count}</td>
+                <td className="text-primary font-semibold">₹{parseFloat(p.total_cost || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                <td className="text-on-surface-variant">{p.generated_by_name || '—'}</td>
+                <td><button onClick={() => openPayslips(p)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors"><Eye className="w-3.5 h-3.5" /> View Payslips</button></td>
+              </tr>
             ))}
-          </tr></thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {loading ? [...Array(3)].map((_,i)=><tr key={i}><td colSpan={6}><div className="h-12 bg-slate-800/50 rounded animate-pulse m-2"/></td></tr>) :
-              payruns.map(pr=>(
-                <tr key={pr.id} className="hover:bg-slate-800/30">
-                  <td className="px-4 py-3 text-sm text-white font-medium">{monthNames[pr.month]} {pr.year}</td>
-                  <td className="px-4 py-3"><StatusBadge status={pr.status}/></td>
-                  <td className="px-4 py-3 text-sm text-slate-300">{pr.payslip_count}</td>
-                  <td className="px-4 py-3 text-sm text-emerald-400 font-medium">₹{parseFloat(pr.total_cost).toLocaleString('en-IN')}</td>
-                  <td className="px-4 py-3 text-sm text-slate-300">{pr.generated_by_name}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button onClick={()=>handleViewPayslips(pr.id)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white" title="View Payslips"><Eye className="w-4 h-4"/></button>
-                      {pr.status==='draft' && <button onClick={()=>handleFinalize(pr.id)} className="px-3 py-1 text-xs rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20">Finalize</button>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
           </tbody>
         </table>
       </div>
 
-      {showGenerate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="glass-card rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-white">Generate Payrun</h2>
-              <button onClick={()=>setShowGenerate(false)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400"><X className="w-5 h-5"/></button>
+      {showGen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowGen(false)}>
+          <div className="glass-card-strong w-full max-w-sm p-6 fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-on-surface">Generate Payrun</h2>
+              <button onClick={() => setShowGen(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
             </div>
             <form onSubmit={handleGenerate} className="space-y-4">
               <div>
-                <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Month</label>
-                <select value={genForm.month} onChange={e=>setGenForm({...genForm,month:parseInt(e.target.value)})} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500">
-                  {Array.from({length:12},(_,i)=><option key={i} value={i+1}>{monthNames[i+1]}</option>)}
+                <label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Month</label>
+                <select value={genForm.month} onChange={e => setGenForm(f => ({ ...f, month: parseInt(e.target.value) }))} className="input-glass w-full px-3 py-2 text-sm rounded-xl">
+                  {months.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Year</label>
-                <input type="number" value={genForm.year} onChange={e=>setGenForm({...genForm,year:parseInt(e.target.value)})} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"/>
+                <label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Year</label>
+                <input type="number" value={genForm.year} onChange={e => setGenForm(f => ({ ...f, year: parseInt(e.target.value) }))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" />
               </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={()=>setShowGenerate(false)} className="px-4 py-2 border border-slate-700 rounded-lg text-sm text-slate-300">Cancel</button>
-                <button type="submit" disabled={generating} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium disabled:opacity-50">
-                  {generating&&<Loader2 className="w-4 h-4 animate-spin"/>}{generating?'Generating...':'Generate'}
-                </button>
-              </div>
+              <button type="submit" disabled={generating} className="btn-glow w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#4d8eff,#571bc1)' }}>
+                {generating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Generate'}
+              </button>
             </form>
           </div>
         </div>
       )}
 
       {viewPayslips && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="glass-card rounded-2xl p-6 w-full max-w-3xl mx-4 shadow-2xl max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-white">Payslips</h2>
-              <button onClick={()=>setViewPayslips(null)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400"><X className="w-5 h-5"/></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setViewPayslips(null)}>
+          <div className="glass-card-strong w-full max-w-4xl max-h-[85vh] p-6 overflow-y-auto fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-on-surface">Payslips — {months[viewPayslips.month - 1]} {viewPayslips.year}</h2>
+              <button onClick={() => setViewPayslips(null)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
             </div>
-            {payslipsLoading ? <div className="space-y-3">{[...Array(5)].map((_,i)=><div key={i} className="h-12 bg-slate-800/50 rounded animate-pulse"/>)}</div> : (
-              <table className="w-full">
-                <thead><tr className="border-b border-slate-800">
-                  {['Employee','Basic','Gross','Deductions','Net Pay','PDF'].map(h=>(
-                    <th key={h} className="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-500">{h}</th>
-                  ))}
-                </tr></thead>
-                <tbody className="divide-y divide-slate-800/50">
-                  {payslips.map(ps=>(
-                    <tr key={ps.id} className="hover:bg-slate-800/30">
-                      <td className="px-4 py-3 text-sm text-white">{ps.full_name}</td>
-                      <td className="px-4 py-3 text-sm text-slate-300">₹{parseFloat(ps.basic).toLocaleString('en-IN')}</td>
-                      <td className="px-4 py-3 text-sm text-slate-300">₹{parseFloat(ps.gross_salary).toLocaleString('en-IN')}</td>
-                      <td className="px-4 py-3 text-sm text-red-400">₹{parseFloat(ps.total_deductions).toLocaleString('en-IN')}</td>
-                      <td className="px-4 py-3 text-sm text-emerald-400 font-medium">₹{parseFloat(ps.net_pay).toLocaleString('en-IN')}</td>
-                      <td className="px-4 py-3"><button onClick={()=>handleDownloadPDF(ps.id)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"><Download className="w-4 h-4"/></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <table className="w-full glass-table">
+              <thead><tr><th>Employee</th><th>Basic</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Actions</th></tr></thead>
+              <tbody>
+                {loadingSlips ? Array.from({length:5}).map((_,i) => <tr key={i}>{Array.from({length:6}).map((_,j)=><td key={j}><div className="skeleton h-4 w-16 rounded"/></td>)}</tr>) :
+                payslips.map(ps => (
+                  <tr key={ps.id}>
+                    <td className="font-medium text-on-surface">{ps.full_name}</td>
+                    <td>₹{parseFloat(ps.basic).toLocaleString()}</td>
+                    <td>₹{parseFloat(ps.gross_salary).toLocaleString()}</td>
+                    <td className="text-danger">₹{parseFloat(ps.total_deductions).toLocaleString()}</td>
+                    <td className="text-primary font-semibold">₹{parseFloat(ps.net_pay).toLocaleString()}</td>
+                    <td><button onClick={() => downloadPDF(ps.id)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-tertiary hover:bg-tertiary/10 transition-colors"><Download className="w-3.5 h-3.5" /> PDF</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

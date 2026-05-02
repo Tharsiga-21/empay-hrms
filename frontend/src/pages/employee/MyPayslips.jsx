@@ -1,111 +1,108 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/shared/PageHeader';
-import StatusBadge from '../../components/shared/StatusBadge';
 import { Download, Eye, X } from 'lucide-react';
-
-const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+import { toast } from 'sonner';
 
 export default function MyPayslips() {
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewPayslip, setViewPayslip] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [viewSlip, setViewSlip] = useState(null);
+  const [slipDetail, setSlipDetail] = useState(null);
 
   useEffect(() => {
-    api.get('/payroll/payslips/my').then(r=>setPayslips(r.data.data)).catch(console.error).finally(()=>setLoading(false));
+    api.get('/payroll/payslips/my').then(res => { setPayslips(res.data.data); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
-  const handleView = async (id) => {
-    setDetailLoading(true);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const viewDetail = async (ps) => {
     try {
-      const res = await api.get(`/payroll/payslips/${id}`);
-      setViewPayslip(res.data.data);
-    } catch(e){console.error(e);}
-    finally{setDetailLoading(false);}
+      const res = await api.get(`/payroll/payslips/${ps.id}`);
+      setSlipDetail(res.data.data);
+      setViewSlip(ps);
+    } catch { toast.error('Failed to fetch details'); }
   };
 
-  const handleDownload = async (id) => {
+  const downloadPDF = async (id) => {
     try {
-      const res = await api.get(`/payroll/payslips/${id}/pdf`, {responseType:'blob'});
+      const res = await api.get(`/payroll/payslips/${id}/pdf`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a'); a.href = url; a.download = `payslip.pdf`; a.click();
-      window.URL.revokeObjectURL(url);
-    } catch(e){alert('Failed to download');}
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `payslip_${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch { toast.error('Failed to download'); }
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader title="My Payslips" subtitle="View and download your payslips"/>
-
-      <div className="glass-card rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead><tr className="border-b border-slate-800">
-            <th className="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-500">Period</th>
-            <th className="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-500">Gross</th>
-            <th className="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-500">Deductions</th>
-            <th className="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-500">Net Pay</th>
-            <th className="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-500">Actions</th>
-          </tr></thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {loading ? [...Array(3)].map((_,i)=><tr key={i}><td colSpan={5}><div className="h-12 bg-slate-800/50 rounded animate-pulse m-2"/></td></tr>) :
-              payslips.map(ps=>(
-                <tr key={ps.id} className="hover:bg-slate-800/30">
-                  <td className="px-4 py-3 text-sm text-white font-medium">{monthNames[ps.month]} {ps.year}</td>
-                  <td className="px-4 py-3 text-sm text-slate-300">₹{parseFloat(ps.gross_salary).toLocaleString('en-IN')}</td>
-                  <td className="px-4 py-3 text-sm text-red-400">₹{parseFloat(ps.total_deductions).toLocaleString('en-IN')}</td>
-                  <td className="px-4 py-3 text-sm text-emerald-400 font-medium">₹{parseFloat(ps.net_pay).toLocaleString('en-IN')}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button onClick={()=>handleView(ps.id)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"><Eye className="w-4 h-4"/></button>
-                      <button onClick={()=>handleDownload(ps.id)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"><Download className="w-4 h-4"/></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+    <div className="space-y-6">
+      <PageHeader title="My Payslips" subtitle="View and download your salary slips." />
+      <div className="glass-card overflow-hidden fade-in">
+        <table className="w-full glass-table">
+          <thead><tr><th>Month</th><th>Year</th><th>Gross Salary</th><th>Deductions</th><th>Net Pay</th><th>Actions</th></tr></thead>
+          <tbody>
+            {loading ? Array.from({length:3}).map((_,i) => <tr key={i}>{Array.from({length:6}).map((_,j)=><td key={j}><div className="skeleton h-4 w-16 rounded"/></td>)}</tr>) :
+            payslips.length === 0 ? <tr><td colSpan={6} className="text-center py-12 text-on-surface-variant">No payslips yet</td></tr> :
+            payslips.map(ps => (
+              <tr key={ps.id}>
+                <td className="font-medium text-on-surface">{months[ps.month - 1]}</td>
+                <td>{ps.year}</td>
+                <td>₹{parseFloat(ps.gross_salary).toLocaleString()}</td>
+                <td className="text-danger">₹{parseFloat(ps.total_deductions).toLocaleString()}</td>
+                <td className="text-primary font-semibold">₹{parseFloat(ps.net_pay).toLocaleString()}</td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => viewDetail(ps)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-primary hover:bg-primary/10"><Eye className="w-3.5 h-3.5" /> View</button>
+                    <button onClick={() => downloadPDF(ps.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-tertiary hover:bg-tertiary/10"><Download className="w-3.5 h-3.5" /> PDF</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
-      {viewPayslip && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="glass-card rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl">
+      {viewSlip && slipDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setViewSlip(null)}>
+          <div className="glass-card-strong w-full max-w-2xl p-6 fade-in max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-white">Payslip — {monthNames[viewPayslip.month]} {viewPayslip.year}</h2>
-              <button onClick={()=>setViewPayslip(null)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400"><X className="w-5 h-5"/></button>
+              <div>
+                <h2 className="text-lg font-bold text-on-surface">Salary Slip</h2>
+                <p className="text-sm text-on-surface-variant">For the month of {months[slipDetail.month - 1]} {slipDetail.year}</p>
+              </div>
+              <button onClick={() => setViewSlip(null)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
             </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div><span className="text-slate-500">Working Days</span><p className="text-white font-medium">{viewPayslip.working_days}</p></div>
-                <div><span className="text-slate-500">Present Days</span><p className="text-white font-medium">{viewPayslip.present_days}</p></div>
-                <div><span className="text-slate-500">Leave Days</span><p className="text-white font-medium">{viewPayslip.leaves_approved}</p></div>
-              </div>
-              <hr className="border-slate-800"/>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-xs uppercase tracking-wide text-indigo-400 mb-3">Earnings</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-slate-400">Basic</span><span className="text-white">₹{parseFloat(viewPayslip.basic).toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">HRA</span><span className="text-white">₹{parseFloat(viewPayslip.hra).toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">Special Allow.</span><span className="text-white">₹{parseFloat(viewPayslip.special_allowance).toLocaleString('en-IN')}</span></div>
-                    <hr className="border-slate-800"/>
-                    <div className="flex justify-between font-bold"><span className="text-white">Gross</span><span className="text-white">₹{parseFloat(viewPayslip.gross_salary).toLocaleString('en-IN')}</span></div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xs uppercase tracking-wide text-red-400 mb-3">Deductions</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-slate-400">PF (12%)</span><span className="text-white">₹{parseFloat(viewPayslip.pf_employee).toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">Prof. Tax</span><span className="text-white">₹{parseFloat(viewPayslip.professional_tax).toLocaleString('en-IN')}</span></div>
-                    <hr className="border-slate-800"/>
-                    <div className="flex justify-between font-bold"><span className="text-white">Total</span><span className="text-red-400">₹{parseFloat(viewPayslip.total_deductions).toLocaleString('en-IN')}</span></div>
-                  </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="glass-card p-4">
+                <h3 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">⊕ Earnings</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-on-surface-variant">Basic Salary</span><span className="text-on-surface">₹{parseFloat(slipDetail.basic).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-on-surface-variant">HRA</span><span className="text-on-surface">₹{parseFloat(slipDetail.hra).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-on-surface-variant">Special Allowance</span><span className="text-on-surface">₹{parseFloat(slipDetail.special_allowance).toLocaleString()}</span></div>
+                  <div className="border-t border-white/10 pt-2 mt-2 flex justify-between font-semibold"><span className="text-on-surface">Gross Earnings</span><span className="text-primary">₹{parseFloat(slipDetail.gross_salary).toLocaleString()}</span></div>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center">
-                <p className="text-xs text-indigo-400 uppercase tracking-wide">Net Pay</p>
-                <p className="text-2xl font-bold text-white mt-1">₹{parseFloat(viewPayslip.net_pay).toLocaleString('en-IN')}</p>
+              <div className="glass-card p-4">
+                <h3 className="text-sm font-semibold text-danger mb-3 flex items-center gap-2">⊖ Deductions</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-on-surface-variant">PF Employee (12%)</span><span className="text-on-surface">₹{parseFloat(slipDetail.pf_employee).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-on-surface-variant">Professional Tax</span><span className="text-on-surface">₹{parseFloat(slipDetail.professional_tax).toLocaleString()}</span></div>
+                  <div className="border-t border-white/10 pt-2 mt-2 flex justify-between font-semibold"><span className="text-on-surface">Total Deductions</span><span className="text-danger">₹{parseFloat(slipDetail.total_deductions).toLocaleString()}</span></div>
+                </div>
               </div>
+            </div>
+
+            <div className="mt-4 p-4 rounded-2xl text-center" style={{ background: 'linear-gradient(135deg, rgba(77,142,255,0.15), rgba(87,27,193,0.15))', border: '1px solid rgba(77,142,255,0.2)' }}>
+              <p className="text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1">Net Payable Salary</p>
+              <p className="text-3xl font-bold text-primary">₹{parseFloat(slipDetail.net_pay).toLocaleString()}</p>
+            </div>
+
+            <div className="mt-3 text-center">
+              <p className="text-xs text-on-surface-variant">Working Days: {slipDetail.working_days} · Present: {slipDetail.present_days} · Leave: {slipDetail.leaves_approved}</p>
             </div>
           </div>
         </div>

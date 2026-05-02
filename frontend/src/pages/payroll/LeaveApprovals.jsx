@@ -1,79 +1,71 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/shared/PageHeader';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { Check, X as XIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function LeaveApprovals() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('');
 
-  const fetchRequests = async () => {
+  const fetchRequests = () => {
     setLoading(true);
-    try {
-      const url = filter === 'all' ? '/leave/requests/all' : `/leave/requests/all?status=${filter}`;
-      const res = await api.get(url);
-      setRequests(res.data.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    const params = statusFilter ? { status: statusFilter } : {};
+    api.get('/leave/requests/all', { params }).then(res => { setRequests(res.data.data); setLoading(false); }).catch(() => setLoading(false));
   };
 
-  useEffect(() => { fetchRequests(); }, [filter]);
+  useEffect(() => { fetchRequests(); }, [statusFilter]);
 
-  const handleApprove = async (id) => {
-    if (!window.confirm('Are you sure you want to approve this leave request?')) return;
+  const handleAction = async (id, action) => {
     try {
-      await api.patch(`/leave/requests/${id}/approve`);
+      await api.patch(`/leave/requests/${id}/${action}`);
+      toast.success(`Leave ${action}d successfully`);
       fetchRequests();
-    } catch (err) { alert(err.response?.data?.message || 'Failed to approve'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
   };
-
-  const handleReject = async (id) => {
-    if (!window.confirm('Are you sure you want to reject this leave request?')) return;
-    try {
-      await api.patch(`/leave/requests/${id}/reject`);
-      fetchRequests();
-    } catch (err) { alert(err.response?.data?.message || 'Failed to reject'); }
-  };
-
-  const columns = [
-    { header: 'Employee', cell: (row) => <div><p className="text-sm font-medium text-white">{row.employee_name}</p><p className="text-xs text-slate-500">{row.department}</p></div> },
-    { header: 'Leave Type', accessorKey: 'leave_type_name' },
-    { header: 'Start', cell: (row) => new Date(row.start_date).toLocaleDateString('en-IN') },
-    { header: 'End', cell: (row) => new Date(row.end_date).toLocaleDateString('en-IN') },
-    { header: 'Days', accessorKey: 'total_days' },
-    { header: 'Reason', cell: (row) => <span className="truncate max-w-[150px] block text-slate-400">{row.reason}</span> },
-    { header: 'Applied', cell: (row) => new Date(row.created_at).toLocaleDateString('en-IN') },
-    { header: 'Status', cell: (row) => <StatusBadge status={row.status} /> },
-    {
-      header: 'Actions', cell: (row) => row.status === 'pending' ? (
-        <div className="flex items-center gap-2">
-          <button onClick={() => handleApprove(row.id)} className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors" title="Approve">
-            <CheckCircle className="w-4 h-4" />
-          </button>
-          <button onClick={() => handleReject(row.id)} className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title="Reject">
-            <XCircle className="w-4 h-4" />
-          </button>
-        </div>
-      ) : '—',
-    },
-  ];
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader title="Leave Approvals" subtitle="Review and process leave requests" />
+    <div className="space-y-6">
+      <PageHeader title="Leave Approvals" subtitle="Review and process leave requests." />
 
-      <div className="flex gap-1 bg-slate-800/50 rounded-lg p-1 w-fit">
-        {['all', 'pending', 'approved', 'rejected'].map(t => (
-          <button key={t} onClick={() => setFilter(t)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors capitalize ${filter === t ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-            {t}
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.05)' }}>
+        {[{ key: '', label: 'All' }, { key: 'pending', label: 'Pending' }, { key: 'approved', label: 'Approved' }, { key: 'rejected', label: 'Rejected' }].map(t => (
+          <button key={t.key} onClick={() => setStatusFilter(t.key)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${statusFilter === t.key ? 'bg-primary/15 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}>
+            {t.label}
           </button>
         ))}
       </div>
 
-      <DataTable columns={columns} data={requests} searchKey="employee_name" isLoading={loading} searchPlaceholder="Search by employee..." />
+      <div className="glass-card overflow-hidden fade-in">
+        <table className="w-full glass-table">
+          <thead><tr><th>Employee</th><th>Department</th><th>Leave Type</th><th>Start</th><th>End</th><th>Days</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {loading ? Array.from({length:5}).map((_,i) => <tr key={i}>{Array.from({length:9}).map((_,j) => <td key={j}><div className="skeleton h-4 w-16 rounded"/></td>)}</tr>) :
+            requests.length === 0 ? <tr><td colSpan={9} className="text-center py-12 text-on-surface-variant">No leave requests found</td></tr> :
+            requests.map(r => (
+              <tr key={r.id}>
+                <td className="font-medium text-on-surface">{r.full_name}</td>
+                <td className="text-on-surface-variant">{r.department}</td>
+                <td>{r.leave_type_name}</td>
+                <td>{new Date(r.start_date).toLocaleDateString()}</td>
+                <td>{new Date(r.end_date).toLocaleDateString()}</td>
+                <td>{r.total_days}</td>
+                <td className="text-on-surface-variant max-w-[120px] truncate">{r.reason || '—'}</td>
+                <td><span className={`chip-${r.status} inline-flex px-2 py-0.5 rounded-full text-xs font-semibold capitalize`}>{r.status}</span></td>
+                <td>
+                  {r.status === 'pending' && (
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => handleAction(r.id, 'approve')} className="p-1.5 rounded-lg text-success hover:bg-success/10 transition-colors"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => handleAction(r.id, 'reject')} className="p-1.5 rounded-lg text-danger hover:bg-danger/10 transition-colors"><XIcon className="w-4 h-4" /></button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

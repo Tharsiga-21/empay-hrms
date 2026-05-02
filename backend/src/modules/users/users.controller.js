@@ -1,64 +1,52 @@
 const usersService = require('./users.service');
 
-const getAllUsers = async (req, res) => {
+const getAll = async (req, res) => {
   try {
-    const users = await usersService.getAllUsers(req.query);
-    res.json({ success: true, message: 'Users fetched.', data: users });
+    const users = await usersService.getAll(req.query);
+    res.json({ success: true, message: 'Users fetched successfully', data: users });
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to fetch users.' });
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Internal server error' });
   }
 };
 
-const getUserById = async (req, res) => {
+const getById = async (req, res) => {
   try {
-    // Employees can only see their own details
-    if (req.user.role === 'employee' && req.params.id !== req.user.id) {
-      // Allow viewing basic info from directory
-      const user = await usersService.getUserById(req.params.id);
-      const { phone, ...publicInfo } = user;
-      return res.json({ success: true, message: 'User fetched.', data: publicInfo });
+    // Employee can only view own profile
+    if (req.user.role === 'employee' && req.user.id !== req.params.id) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
     }
-    const user = await usersService.getUserById(req.params.id);
-    res.json({ success: true, message: 'User fetched.', data: user });
+    const user = await usersService.getById(req.params.id);
+    res.json({ success: true, message: 'User fetched successfully', data: user });
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to fetch user.' });
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Internal server error' });
   }
 };
 
-const updateUser = async (req, res) => {
+const update = async (req, res) => {
   try {
-    const user = await usersService.updateUser(req.params.id, req.body, req.user);
-    res.json({ success: true, message: 'User updated successfully.', data: user });
+    const user = await usersService.update(req.params.id, req.body, req.user);
+    res.json({ success: true, message: 'User updated successfully', data: user });
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to update user.' });
-  }
-};
-
-const updateMe = async (req, res) => {
-  try {
-    const user = await usersService.updateUser(req.user.id, req.body, req.user);
-    res.json({ success: true, message: 'Profile updated successfully.', data: user });
-  } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to update profile.' });
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Internal server error' });
   }
 };
 
 const toggleActive = async (req, res) => {
   try {
     const user = await usersService.toggleActive(req.params.id);
-    res.json({ success: true, message: `User ${user.is_active ? 'activated' : 'deactivated'}.`, data: user });
+    res.json({ success: true, message: `User ${user.is_active ? 'activated' : 'deactivated'} successfully`, data: user });
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to toggle user status.' });
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Internal server error' });
   }
 };
 
 const deleteUser = async (req, res) => {
   try {
-    const user = await usersService.deleteUser(req.params.id);
-    res.json({ success: true, message: 'User deactivated.', data: user });
+    const user = await usersService.softDelete(req.params.id);
+    res.json({ success: true, message: 'User deactivated successfully', data: user });
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to delete user.' });
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Internal server error' });
   }
 };
 
-module.exports = { getAllUsers, getUserById, updateUser, updateMe, toggleActive, deleteUser };
+module.exports = { getAll, getById, update, toggleActive, deleteUser };

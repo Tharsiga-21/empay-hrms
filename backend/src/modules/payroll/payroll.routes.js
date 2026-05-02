@@ -1,23 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const payrollController = require('./payroll.controller');
-const auth = require('../../middleware/auth');
+const authMiddleware = require('../../middleware/auth');
 const roleGuard = require('../../middleware/roleGuard');
 
+router.use(authMiddleware);
+
 // Salary Structures
-router.post('/salary-structure', auth, roleGuard(['admin', 'payroll_officer']), payrollController.upsertSalaryStructure);
-router.get('/salary-structure', auth, roleGuard(['admin', 'payroll_officer']), payrollController.getAllSalaryStructures);
-router.get('/salary-structure/:employee_id', auth, roleGuard(['admin', 'payroll_officer']), payrollController.getSalaryStructure);
+router.post('/salary-structure', roleGuard(['admin', 'payroll_officer']), payrollController.upsertSalaryStructure);
+router.get('/salary-structure', roleGuard(['admin', 'payroll_officer']), payrollController.getAllSalaryStructures);
+router.get('/salary-structure/:employee_id', roleGuard(['admin', 'payroll_officer']), payrollController.getSalaryStructure);
 
 // Payruns
-router.post('/payrun/generate', auth, roleGuard(['admin', 'payroll_officer']), payrollController.generatePayrun);
-router.get('/payruns', auth, roleGuard(['admin', 'payroll_officer']), payrollController.getAllPayruns);
-router.get('/payruns/:id/payslips', auth, roleGuard(['admin', 'payroll_officer']), payrollController.getPayrunPayslips);
-router.patch('/payruns/:id/finalize', auth, roleGuard(['admin', 'payroll_officer']), payrollController.finalizePayrun);
+router.post('/payrun/generate', roleGuard(['admin', 'payroll_officer']), payrollController.generatePayrun);
+router.get('/payruns', roleGuard(['admin', 'payroll_officer']), payrollController.getPayruns);
+router.get('/payruns/:id/payslips', roleGuard(['admin', 'payroll_officer']), payrollController.getPayrunPayslips);
 
 // Payslips
-router.get('/payslips/my', auth, payrollController.getMyPayslips);
-router.get('/payslips/:id', auth, payrollController.getPayslipById);
-router.get('/payslips/:id/pdf', auth, payrollController.getPayslipPDF);
+router.get('/payslips/my', payrollController.getMyPayslips);
+router.get('/payslips/:id', payrollController.getPayslipById);
+router.get('/payslips/:id/pdf', payrollController.getPayslipPDF);
 
 module.exports = router;

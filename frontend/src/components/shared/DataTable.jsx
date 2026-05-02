@@ -1,74 +1,54 @@
-import { useState } from 'react';
 import { Search } from 'lucide-react';
-import EmptyState from './EmptyState';
 
-export default function DataTable({ columns, data, searchKey, isLoading, searchPlaceholder = 'Search...' }) {
-  const [search, setSearch] = useState('');
-
-  const filtered = search && searchKey
-    ? data.filter(row => {
-        const keys = Array.isArray(searchKey) ? searchKey : [searchKey];
-        return keys.some(k => String(row[k] || '').toLowerCase().includes(search.toLowerCase()));
-      })
-    : data;
-
-  if (isLoading) {
-    return (
-      <div className="glass-card rounded-xl overflow-hidden">
-        {searchKey && (
-          <div className="p-4 border-b border-slate-800">
-            <div className="h-10 bg-slate-800 rounded-lg animate-pulse w-64" />
-          </div>
-        )}
-        <div className="p-4 space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-slate-800/50 rounded animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
+export default function DataTable({ columns, data, searchKey, isLoading, searchValue, onSearchChange, emptyMessage = 'No data found' }) {
   return (
-    <div className="glass-card rounded-xl overflow-hidden">
+    <div className="glass-card overflow-hidden fade-in">
       {searchKey && (
-        <div className="p-4 border-b border-slate-800">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+        <div className="p-4 border-b border-white/5">
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
             <input
               type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={searchPlaceholder}
-              className="w-full pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              placeholder={`Search by ${searchKey}...`}
+              value={searchValue || ''}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+              className="input-glass w-full pl-10 pr-4 py-2 text-sm rounded-xl"
             />
           </div>
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full glass-table">
           <thead>
-            <tr className="border-b border-slate-800">
-              {columns.map((col, i) => (
-                <th key={i} className="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-500 font-medium">
-                  {col.header}
-                </th>
+            <tr>
+              {columns.map((col) => (
+                <th key={col.key}>{col.label}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {filtered.length === 0 ? (
+          <tbody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  {columns.map((col) => (
+                    <td key={col.key}>
+                      <div className="skeleton h-4 w-24 rounded" />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length}>
-                  <EmptyState />
+                <td colSpan={columns.length} className="text-center py-12 text-on-surface-variant">
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
-              filtered.map((row, i) => (
-                <tr key={row.id || i} className="hover:bg-slate-800/30 transition-colors">
-                  {columns.map((col, j) => (
-                    <td key={j} className="px-4 py-3 text-sm text-slate-300">
-                      {col.cell ? col.cell(row) : row[col.accessorKey]}
+              data.map((row, idx) => (
+                <tr key={row.id || idx}>
+                  {columns.map((col) => (
+                    <td key={col.key}>
+                      {col.render ? col.render(row[col.key], row) : row[col.key]}
                     </td>
                   ))}
                 </tr>

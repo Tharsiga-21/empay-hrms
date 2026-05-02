@@ -1,137 +1,171 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/shared/PageHeader';
-import DataTable from '../../components/shared/DataTable';
-import StatusBadge from '../../components/shared/StatusBadge';
-import { Plus, X } from 'lucide-react';
+import { X, Loader2, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function HRLeaves() {
   const [tab, setTab] = useState('requests');
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [allocations, setAllocations] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [leaveTypes, setLeaveTypes] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [allocations, setAllocations] = useState([]);
+  const [selectedEmp, setSelectedEmp] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('');
   const [showAllocDialog, setShowAllocDialog] = useState(false);
   const [allocForm, setAllocForm] = useState({ employee_id: '', leave_type_id: '', allocated_days: '', year: new Date().getFullYear() });
-  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     Promise.all([
-      api.get('/leave/requests/all'),
+      api.get('/leave/requests/all', { params: statusFilter ? { status: statusFilter } : {} }),
       api.get('/users'),
       api.get('/leave/types'),
-    ]).then(([reqRes, usersRes, typesRes]) => {
+    ]).then(([reqRes, usrRes, ltRes]) => {
       setRequests(reqRes.data.data);
-      setEmployees(usersRes.data.data);
-      setLeaveTypes(typesRes.data.data);
-    }).catch(console.error).finally(() => setLoading(false));
-  }, []);
+      setEmployees(usrRes.data.data);
+      setLeaveTypes(ltRes.data.data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [statusFilter]);
 
-  const fetchAllocations = async (empId) => {
-    if (!empId) return;
-    setSelectedEmployee(empId);
-    try {
-      const res = await api.get(`/leave/allocation/${empId}`);
-      setAllocations(res.data.data);
-    } catch (err) { console.error(err); }
-  };
+  useEffect(() => {
+    if (selectedEmp) {
+      api.get(`/leave/allocation/${selectedEmp}`).then(res => setAllocations(res.data.data)).catch(() => {});
+    }
+  }, [selectedEmp]);
 
-  const handleAllocate = async (e) => {
+  const handleAllocSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
+    setSubmitting(true);
     try {
       await api.post('/leave/allocation', allocForm);
+      toast.success('Leave allocated');
       setShowAllocDialog(false);
-      if (selectedEmployee) fetchAllocations(selectedEmployee);
-    } catch (err) { console.error(err); }
-    finally { setSaving(false); }
+      if (selectedEmp) {
+        const res = await api.get(`/leave/allocation/${selectedEmp}`);
+        setAllocations(res.data.data);
+      }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    setSubmitting(false);
   };
 
-  const requestColumns = [
-    { header: 'Employee', cell: (row) => <div><p className="text-sm font-medium text-white">{row.employee_name}</p><p className="text-xs text-slate-500">{row.department}</p></div> },
-    { header: 'Type', accessorKey: 'leave_type_name' },
-    { header: 'Start', cell: (row) => new Date(row.start_date).toLocaleDateString('en-IN') },
-    { header: 'End', cell: (row) => new Date(row.end_date).toLocaleDateString('en-IN') },
-    { header: 'Days', accessorKey: 'total_days' },
-    { header: 'Reason', cell: (row) => <span className="truncate max-w-[150px] block">{row.reason}</span> },
-    { header: 'Status', cell: (row) => <StatusBadge status={row.status} /> },
-    { header: 'Applied', cell: (row) => new Date(row.created_at).toLocaleDateString('en-IN') },
-  ];
-
-  const allocColumns = [
-    { header: 'Leave Type', accessorKey: 'leave_type_name' },
-    { header: 'Allocated', accessorKey: 'allocated_days' },
-    { header: 'Used', accessorKey: 'used_days' },
-    { header: 'Remaining', cell: (row) => <span className={`font-medium ${row.remaining <= 2 ? 'text-red-400' : 'text-emerald-400'}`}>{row.remaining}</span> },
-  ];
-
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader title="Leave Management" subtitle="View leave requests and manage allocations" />
+    <div className="space-y-6">
+      <PageHeader title="Leave Management" subtitle="Track and manage time off." />
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-slate-800/50 rounded-lg p-1 w-fit">
-        {['requests', 'allocations'].map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === t ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>
-            {t === 'requests' ? 'Leave Requests' : 'Leave Allocations'}
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.05)' }}>
+        {[{ key: 'requests', label: 'Leave Requests' }, { key: 'allocation', label: 'Leave Allocation' }].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.key ? 'bg-primary/15 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}>
+            {t.label}
           </button>
         ))}
       </div>
 
       {tab === 'requests' && (
-        <DataTable columns={requestColumns} data={requests} searchKey="employee_name" isLoading={loading} searchPlaceholder="Search by employee name..." />
+        <>
+          <div className="flex gap-2">
+            {['', 'pending', 'approved', 'rejected'].map(s => (
+              <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === s ? 'bg-primary/15 text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'}`}>
+                {s || 'All'}
+              </button>
+            ))}
+          </div>
+          <div className="glass-card overflow-hidden fade-in">
+            <table className="w-full glass-table">
+              <thead><tr><th>Employee</th><th>Leave Type</th><th>Start</th><th>End</th><th>Days</th><th>Reason</th><th>Status</th><th>Applied On</th></tr></thead>
+              <tbody>
+                {loading ? Array.from({length:5}).map((_,i)=><tr key={i}>{Array.from({length:8}).map((_,j)=><td key={j}><div className="skeleton h-4 w-16 rounded"/></td>)}</tr>) :
+                requests.map(r => (
+                  <tr key={r.id}>
+                    <td className="font-medium text-on-surface">{r.full_name}</td>
+                    <td>{r.leave_type_name}</td>
+                    <td>{new Date(r.start_date).toLocaleDateString()}</td>
+                    <td>{new Date(r.end_date).toLocaleDateString()}</td>
+                    <td>{r.total_days}</td>
+                    <td className="text-on-surface-variant max-w-[150px] truncate">{r.reason || '—'}</td>
+                    <td><span className={`chip-${r.status} inline-flex px-2 py-0.5 rounded-full text-xs font-semibold capitalize`}>{r.status}</span></td>
+                    <td className="text-on-surface-variant">{new Date(r.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
-      {tab === 'allocations' && (
-        <div className="space-y-4">
+      {tab === 'allocation' && (
+        <>
           <div className="flex items-center gap-4">
-            <select value={selectedEmployee} onChange={e => fetchAllocations(e.target.value)} className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500">
+            <select value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)} className="input-glass px-3 py-2 text-sm rounded-xl min-w-[250px]">
               <option value="">Select Employee</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+              {employees.map(e => <option key={e.id} value={e.id}>{e.full_name} ({e.email})</option>)}
             </select>
-            <button onClick={() => setShowAllocDialog(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">
+            <button onClick={() => { setAllocForm({ employee_id: '', leave_type_id: '', allocated_days: '', year: new Date().getFullYear() }); setShowAllocDialog(true); }}
+              className="btn-glow flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg,#4d8eff,#571bc1)' }}>
               <Plus className="w-4 h-4" /> Allocate Leave
             </button>
           </div>
 
-          {selectedEmployee && <DataTable columns={allocColumns} data={allocations} isLoading={false} />}
-
-          {showAllocDialog && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-              <div className="glass-card rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-white">Allocate Leave</h2>
-                  <button onClick={() => setShowAllocDialog(false)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400"><X className="w-5 h-5" /></button>
-                </div>
-                <form onSubmit={handleAllocate} className="space-y-4">
-                  <div>
-                    <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Employee</label>
-                    <select value={allocForm.employee_id} onChange={e => setAllocForm({ ...allocForm, employee_id: e.target.value })} required className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500">
-                      <option value="">Select</option>
-                      {employees.map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Leave Type</label>
-                    <select value={allocForm.leave_type_id} onChange={e => setAllocForm({ ...allocForm, leave_type_id: e.target.value })} required className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500">
-                      <option value="">Select</option>
-                      {leaveTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Days</label>
-                    <input type="number" value={allocForm.allocated_days} onChange={e => setAllocForm({ ...allocForm, allocated_days: e.target.value })} required className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                  </div>
-                  <div className="flex justify-end gap-3 pt-4">
-                    <button type="button" onClick={() => setShowAllocDialog(false)} className="px-4 py-2 border border-slate-700 rounded-lg text-sm text-slate-300">Cancel</button>
-                    <button type="submit" disabled={saving} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium disabled:opacity-50">{saving ? 'Saving...' : 'Allocate'}</button>
-                  </div>
-                </form>
-              </div>
+          {selectedEmp && (
+            <div className="glass-card overflow-hidden fade-in">
+              <table className="w-full glass-table">
+                <thead><tr><th>Leave Type</th><th>Allocated</th><th>Used</th><th>Remaining</th></tr></thead>
+                <tbody>
+                  {allocations.map(a => (
+                    <tr key={a.id}>
+                      <td className="font-medium text-on-surface">{a.name}</td>
+                      <td>{a.allocated_days}</td>
+                      <td>{a.used_days}</td>
+                      <td className="font-semibold text-primary">{a.remaining}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
+        </>
+      )}
+
+      {showAllocDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAllocDialog(false)}>
+          <div className="glass-card-strong w-full max-w-md p-6 fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-on-surface">Allocate Leave</h2>
+              <button onClick={() => setShowAllocDialog(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4 text-on-surface-variant" /></button>
+            </div>
+            <form onSubmit={handleAllocSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Employee</label>
+                <select value={allocForm.employee_id} onChange={e => setAllocForm(f => ({ ...f, employee_id: e.target.value }))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" required>
+                  <option value="">Select</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Leave Type</label>
+                <select value={allocForm.leave_type_id} onChange={e => setAllocForm(f => ({ ...f, leave_type_id: e.target.value }))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" required>
+                  <option value="">Select</option>
+                  {leaveTypes.map(lt => <option key={lt.id} value={lt.id}>{lt.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Days</label>
+                  <input type="number" value={allocForm.allocated_days} onChange={e => setAllocForm(f => ({ ...f, allocated_days: e.target.value }))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" required />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Year</label>
+                  <input type="number" value={allocForm.year} onChange={e => setAllocForm(f => ({ ...f, year: e.target.value }))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" required />
+                </div>
+              </div>
+              <button type="submit" disabled={submitting} className="btn-glow w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#4d8eff,#571bc1)' }}>
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Allocate'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

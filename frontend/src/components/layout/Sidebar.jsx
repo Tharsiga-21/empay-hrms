@@ -1,119 +1,106 @@
-import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import RoleBadge from '../shared/RoleBadge';
 import {
-  LayoutDashboard, Users, CalendarCheck, CalendarOff, Banknote, Settings,
-  UserPlus, CheckSquare, Receipt, DollarSign, FolderOpen, FileText,
-  ChevronLeft, ChevronRight, LogOut, Briefcase
+  LayoutDashboard, Users, CalendarCheck, CalendarOff, Banknote,
+  Settings, UserPlus, CheckSquare, Receipt, DollarSign,
+  BookUser, FileText, LogOut, Building2
 } from 'lucide-react';
 
-const navItems = {
+const roleMenus = {
   admin: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-    { label: 'User Management', icon: Users, path: '/admin/users' },
-    { label: 'Attendance', icon: CalendarCheck, path: '/hr/attendance' },
-    { label: 'Leaves', icon: CalendarOff, path: '/hr/leaves' },
-    { label: 'Payroll', icon: Banknote, path: '/payroll/payruns' },
-    { label: 'Settings', icon: Settings, path: '/admin/settings' },
+    { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { label: 'User Management', path: '/admin/users', icon: Users },
+    { label: 'Attendance', path: '/hr/attendance', icon: CalendarCheck },
+    { label: 'Leaves', path: '/hr/leaves', icon: CalendarOff },
+    { label: 'Payroll', path: '/payroll/payruns', icon: Banknote },
+    { label: 'Settings', path: '/admin/settings', icon: Settings },
   ],
   hr_officer: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/hr/dashboard' },
-    { label: 'Employees', icon: UserPlus, path: '/hr/employees' },
-    { label: 'Attendance', icon: CalendarCheck, path: '/hr/attendance' },
-    { label: 'Leaves', icon: CalendarOff, path: '/hr/leaves' },
+    { label: 'Dashboard', path: '/hr/dashboard', icon: LayoutDashboard },
+    { label: 'Employees', path: '/hr/employees', icon: UserPlus },
+    { label: 'Attendance', path: '/hr/attendance', icon: CalendarCheck },
+    { label: 'Leaves', path: '/hr/leaves', icon: CalendarOff },
   ],
   payroll_officer: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/payroll/dashboard' },
-    { label: 'Leave Approvals', icon: CheckSquare, path: '/payroll/leaves' },
-    { label: 'Payruns', icon: Receipt, path: '/payroll/payruns' },
-    { label: 'Salary Structures', icon: DollarSign, path: '/payroll/salary' },
+    { label: 'Dashboard', path: '/payroll/dashboard', icon: LayoutDashboard },
+    { label: 'Leave Approvals', path: '/payroll/leaves', icon: CheckSquare },
+    { label: 'Payruns', path: '/payroll/payruns', icon: Receipt },
+    { label: 'Salary Structures', path: '/payroll/salary', icon: DollarSign },
   ],
   employee: [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'My Attendance', icon: CalendarCheck, path: '/attendance' },
-    { label: 'My Leaves', icon: CalendarOff, path: '/leaves' },
-    { label: 'My Payslips', icon: FileText, path: '/payslips' },
-    { label: 'Directory', icon: FolderOpen, path: '/directory' },
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { label: 'My Attendance', path: '/attendance', icon: CalendarCheck },
+    { label: 'My Leaves', path: '/leaves', icon: CalendarOff },
+    { label: 'My Payslips', path: '/payslips', icon: FileText },
+    { label: 'Directory', path: '/directory', icon: BookUser },
   ],
 };
 
 export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const items = navItems[user?.role] || [];
+  const location = useLocation();
+  const menuItems = roleMenus[user?.role] || [];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen bg-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 z-40 ${collapsed ? 'w-[68px]' : 'w-[250px]'}`}>
-      {/* Logo */}
-      <div className="h-16 flex items-center px-4 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-            <Briefcase className="w-5 h-5 text-white" />
-          </div>
-          {!collapsed && (
-            <div className="animate-fadeIn">
-              <h1 className="text-lg font-bold text-white tracking-tight">EmPay</h1>
-              <p className="text-[10px] text-slate-500 -mt-1">Smart HRMS</p>
-            </div>
-          )}
+    <aside className="w-64 h-screen fixed left-0 top-0 flex flex-col z-40"
+      style={{
+        background: 'rgba(11, 19, 38, 0.95)',
+        backdropFilter: 'blur(20px)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
+      }}>
+      {/* Brand */}
+      <div className="p-6 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ background: 'linear-gradient(135deg, #4d8eff, #571bc1)' }}>
+          <Building2 className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <h1 className="text-base font-bold text-white tracking-tight">EmPay HRMS</h1>
+          <p className="text-[0.65rem] text-on-surface-variant tracking-widest uppercase">Enterprise Portal</p>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {items.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
-              ${isActive
-                ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent'}`
-            }
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!collapsed && <span className="animate-fadeIn">{item.label}</span>}
-          </NavLink>
-        ))}
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={`sidebar-link flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                isActive ? 'active' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <Icon className="w-[18px] h-[18px]" />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
       </nav>
 
-      {/* User section */}
-      <div className="border-t border-slate-800 p-3">
-        {!collapsed && (
-          <div className="flex items-center gap-3 px-3 py-2 mb-2 animate-fadeIn">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {user?.full_name?.charAt(0)?.toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.full_name}</p>
-              <RoleBadge role={user?.role} className="mt-0.5" />
-            </div>
+      {/* User Profile */}
+      <div className="p-4 border-t border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold"
+            style={{ background: 'linear-gradient(135deg, #4d8eff, #571bc1)', color: 'white' }}>
+            {getInitials(user?.full_name)}
           </div>
-        )}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
-        >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span>Logout</span>}
-        </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-on-surface truncate">{user?.full_name}</p>
+            <p className="text-[0.65rem] text-on-surface-variant truncate capitalize">{user?.role?.replace('_', ' ')}</p>
+          </div>
+          <button onClick={logout} className="p-1.5 rounded-lg hover:bg-white/5 text-on-surface-variant hover:text-error transition-colors" title="Logout">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-      >
-        {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-      </button>
     </aside>
   );
 }

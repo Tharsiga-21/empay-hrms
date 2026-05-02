@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
 
 const AuthContext = createContext(null);
@@ -10,35 +9,26 @@ export const useAuth = () => {
   return context;
 };
 
-const getRoleRedirect = (role) => {
-  switch (role) {
-    case 'admin': return '/admin/dashboard';
-    case 'hr_officer': return '/hr/dashboard';
-    case 'payroll_officer': return '/payroll/dashboard';
-    case 'employee': return '/dashboard';
-    default: return '/login';
-  }
-};
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('empay_token'));
   const [isLoading, setIsLoading] = useState(true);
 
+  const isAuthenticated = !!user && !!token;
+
   useEffect(() => {
     const initAuth = async () => {
       const savedToken = localStorage.getItem('empay_token');
-      const savedUser = localStorage.getItem('empay_user');
-      if (savedToken && savedUser) {
+      if (savedToken) {
         try {
-          setToken(savedToken);
-          setUser(JSON.parse(savedUser));
-          // Verify token is still valid
           const res = await api.get('/auth/me');
           setUser(res.data.data);
-          localStorage.setItem('empay_user', JSON.stringify(res.data.data));
+          setToken(savedToken);
         } catch {
-          logout();
+          localStorage.removeItem('empay_token');
+          localStorage.removeItem('empay_user');
+          setUser(null);
+          setToken(null);
         }
       }
       setIsLoading(false);
@@ -46,33 +36,33 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
     const { token: newToken, user: userData } = res.data.data;
-    setToken(newToken);
-    setUser(userData);
     localStorage.setItem('empay_token', newToken);
     localStorage.setItem('empay_user', JSON.stringify(userData));
-    return getRoleRedirect(userData.role);
-  };
+    setToken(newToken);
+    setUser(userData);
+    return userData;
+  }, []);
 
-  const logout = () => {
-    setToken(null);
-    setUser(null);
+  const logout = useCallback(() => {
     localStorage.removeItem('empay_token');
     localStorage.removeItem('empay_user');
-  };
+    setToken(null);
+    setUser(null);
+  }, []);
 
-  const updateUser = (data) => {
-    setUser(data);
-    localStorage.setItem('empay_user', JSON.stringify(data));
-  };
-
-  const isAuthenticated = !!token && !!user;
+  const updateUser = useCallback((data) => {
+    setUser((prev) => ({ ...prev, ...data }));
+    localStorage.setItem('empay_user', JSON.stringify({ ...user, ...data }));
+  }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout, updateUser, getRoleRedirect }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+export default AuthContext;

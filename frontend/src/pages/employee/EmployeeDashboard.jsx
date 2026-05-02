@@ -2,38 +2,29 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
 import StatCard from '../../components/shared/StatCard';
-import StatusBadge from '../../components/shared/StatusBadge';
-import PageHeader from '../../components/shared/PageHeader';
-import { CalendarCheck, CalendarOff, Banknote, Clock, Loader2 } from 'lucide-react';
+import { CalendarCheck, CalendarOff, Banknote, LogIn, LogOut, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { toast } from 'sonner';
 
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [todayStatus, setTodayStatus] = useState(null);
   const [marking, setMarking] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
-      api.get('/dashboard/employee'),
-      api.get('/attendance/today-status'),
-    ]).then(([dashRes, statusRes]) => {
-      setData(dashRes.data.data);
-      setTodayStatus(statusRes.data.data);
-    }).catch(console.error).finally(() => setLoading(false));
-  }, []);
+  const fetchData = () => {
+    api.get('/dashboard/employee').then(res => { setData(res.data.data); setLoading(false); }).catch(() => setLoading(false));
+  };
+  useEffect(() => { fetchData(); }, []);
 
   const handleMark = async () => {
     setMarking(true);
     try {
       const res = await api.post('/attendance/mark');
-      setTodayStatus(res.data.data.record);
-      // Refresh dashboard
-      const dashRes = await api.get('/dashboard/employee');
-      setData(dashRes.data.data);
-    } catch (err) { alert(err.response?.data?.message || 'Failed'); }
-    finally { setMarking(false); }
+      toast.success(res.data.message);
+      fetchData();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    setMarking(false);
   };
 
   const getGreeting = () => {
@@ -43,86 +34,101 @@ export default function EmployeeDashboard() {
     return 'Good evening';
   };
 
-  const hasCheckedIn = todayStatus?.check_in;
-  const hasCheckedOut = todayStatus?.check_out;
+  const todayAtt = data?.today_attendance;
+  const isCheckedIn = todayAtt && todayAtt.check_in && !todayAtt.check_out;
+  const isCheckedOut = todayAtt && todayAtt.check_out;
 
-  const recentChart = (data?.recent_attendance || []).reverse().map(d => ({
-    date: new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
-    value: d.status === 'present' ? 1 : d.status === 'half_day' ? 0.5 : 0,
-    status: d.status,
+  const chartData = (data?.recent_attendance || []).reverse().map(d => ({
+    date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    hours: d.check_in && d.check_out ? ((new Date(`2024-01-01T${d.check_out}`) - new Date(`2024-01-01T${d.check_in}`)) / 3600000).toFixed(1) : 0,
   }));
 
-  if (loading) return <div className="space-y-6"><div className="h-10 bg-slate-800/50 rounded animate-pulse w-64" /><div className="grid grid-cols-4 gap-4">{[...Array(4)].map((_,i)=><div key={i} className="h-28 bg-slate-800/50 rounded-xl animate-pulse"/>)}</div></div>;
+  if (loading) return <div className="space-y-6"><div className="skeleton h-10 w-64 rounded-xl" /><div className="grid grid-cols-4 gap-5">{Array.from({length:4}).map((_,i)=><div key={i} className="skeleton h-32 rounded-2xl" />)}</div></div>;
 
   const att = data?.attendance_this_month || {};
-  const totalLeaveUsed = (data?.leave_balance||[]).reduce((s,b)=>s+b.used_days,0);
-  const totalLeaveRemaining = (data?.leave_balance||[]).reduce((s,b)=>s+(b.allocated_days-b.used_days),0);
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">{getGreeting()}, {user?.full_name?.split(' ')[0]}!</h1>
-          <p className="text-sm text-slate-400 mt-1">Here's your overview for today</p>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div><h1 className="text-2xl font-bold text-on-surface">{getGreeting()}, {user?.full_name?.split(' ')[0]}!</h1>
+          <p className="text-sm text-on-surface-variant mt-1">Here's an overview of your workday.</p></div>
+        <div className="glass-card px-4 py-2 text-sm font-medium text-on-surface flex items-center gap-2">
+          <CalendarCheck className="w-4 h-4 text-primary" />
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
         </div>
-        <button onClick={handleMark} disabled={marking || hasCheckedOut}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${hasCheckedOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : hasCheckedIn ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30'}`}>
-          {marking ? <Loader2 className="w-4 h-4 animate-spin"/> : <Clock className="w-4 h-4"/>}
-          {hasCheckedOut ? `Checked out` : hasCheckedIn ? 'Check Out' : 'Check In'}
-        </button>
       </div>
 
-      {todayStatus && (
-        <div className="glass-card rounded-xl p-4 flex items-center gap-4">
-          <StatusBadge status={todayStatus.status || 'absent'} />
-          {todayStatus.check_in && <span className="text-sm text-slate-400">Checked in at <span className="text-white">{todayStatus.check_in}</span></span>}
-          {todayStatus.check_out && <span className="text-sm text-slate-400">Checked out at <span className="text-white">{todayStatus.check_out}</span></span>}
+      {/* Check In/Out + Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+        <div className="lg:col-span-2 glass-card p-5 fade-in">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              {isCheckedIn && <p className="text-xs text-success font-semibold mb-1 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-success pulse-dot" /> CHECKED IN</p>}
+              {isCheckedOut && <p className="text-xs text-on-surface-variant font-semibold mb-1">CHECKED OUT</p>}
+              {!todayAtt && <p className="text-xs text-warning font-semibold mb-1">NOT CHECKED IN</p>}
+              {todayAtt?.check_in && <p className="text-lg font-bold text-on-surface">{todayAtt.check_in.substring(0, 5)}</p>}
+            </div>
+            <button onClick={handleMark} disabled={marking || isCheckedOut} className={`btn-glow flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-all`}
+              style={{ background: isCheckedIn ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #4d8eff, #571bc1)' }}>
+              {marking ? <Loader2 className="w-4 h-4 animate-spin" /> : isCheckedIn ? <><LogOut className="w-4 h-4" /> Check Out</> : <><LogIn className="w-4 h-4" /> Check In</>}
+            </button>
+          </div>
         </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Present This Month" value={parseInt(att.present)||0} icon={CalendarCheck} color="green" subtitle={`of ${att.total_working_days} working days`} />
-        <StatCard title="Leaves Taken" value={totalLeaveUsed} icon={CalendarOff} color="amber" />
-        <StatCard title="Leave Balance" value={totalLeaveRemaining} icon={Clock} color="blue" />
-        <StatCard title="Last Net Pay" value={data?.last_payslip ? `₹${parseFloat(data.last_payslip.net_pay).toLocaleString('en-IN')}` : '—'} icon={Banknote} color="purple" />
+        <StatCard title="Present Days" value={parseInt(att.present) || 0} icon={CalendarCheck} color="success" subtitle={`of ${att.total_working_days || 0} days`} />
+        <StatCard title="On Leave" value={parseInt(att.on_leave) || 0} icon={CalendarOff} color="primary" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-card rounded-xl p-5">
-          <h3 className="text-sm font-medium text-white mb-4">Attendance (Last 7 Days)</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={recentChart}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b"/>
-              <XAxis dataKey="date" tick={{fontSize:12,fill:'#94a3b8'}}/>
-              <YAxis domain={[0,1]} tick={{fontSize:12,fill:'#94a3b8'}} ticks={[0,0.5,1]}/>
-              <Tooltip contentStyle={{backgroundColor:'#0f172a',border:'1px solid #1e293b',borderRadius:'8px',color:'#fff'}}/>
-              <Bar dataKey="value" fill="#22C55E" radius={[4,4,0,0]}/>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Chart */}
+        <div className="lg:col-span-2 glass-card p-5 fade-in">
+          <h3 className="text-lg font-semibold text-on-surface mb-4">Hours Logged This Week</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis dataKey="date" stroke="#8c909f" fontSize={12} />
+              <YAxis stroke="#8c909f" fontSize={12} />
+              <Tooltip contentStyle={{ background: '#171f33', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#dae2fd' }} />
+              <Bar dataKey="hours" fill="#4d8eff" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="glass-card rounded-xl p-5">
-          <h3 className="text-sm font-medium text-white mb-4">Leave Balance</h3>
+        {/* Leave Balance */}
+        <div className="glass-card p-5 fade-in">
+          <h3 className="text-lg font-semibold text-on-surface mb-4">Leave Balance</h3>
           <div className="space-y-4">
-            {(data?.leave_balance||[]).map(lb => {
-              const remaining = lb.allocated_days - lb.used_days;
-              const pct = lb.allocated_days > 0 ? (lb.used_days/lb.allocated_days)*100 : 0;
+            {(data?.leave_balance || []).map(lb => {
+              const pct = lb.allocated > 0 ? ((lb.used / lb.allocated) * 100) : 0;
+              const colors = { 'Casual Leave': '#4d8eff', 'Sick Leave': '#f87171', 'Earned Leave': '#4cd7f6' };
               return (
-                <div key={lb.leave_type_id}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-slate-300">{lb.leave_type_name}</span>
-                    <span className="text-xs text-slate-500">{lb.used_days}/{lb.allocated_days} used</span>
+                <div key={lb.leave_type}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm text-on-surface-variant">{lb.leave_type}</span>
+                    <span className="text-sm font-semibold text-on-surface">{lb.used} <span className="text-on-surface-variant font-normal">/ {lb.allocated} used</span></span>
                   </div>
-                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 rounded-full transition-all" style={{width:`${pct}%`}}/>
+                  <div className="progress-bar">
+                    <div className="progress-bar-fill" style={{ width: `${Math.min(pct, 100)}%`, background: colors[lb.leave_type] || '#4d8eff' }} />
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">{remaining} remaining</p>
                 </div>
               );
             })}
           </div>
         </div>
       </div>
+
+      {/* Last Payslip */}
+      {data?.last_payslip && (
+        <div className="glass-card p-5 fade-in">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1">Last Salary</p>
+              <p className="text-2xl font-bold text-on-surface">₹{parseFloat(data.last_payslip.net_pay).toLocaleString()}</p>
+              <p className="text-xs text-on-surface-variant mt-1">Credited for {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][data.last_payslip.month - 1]} {data.last_payslip.year}</p>
+            </div>
+            <Banknote className="w-8 h-8 text-primary opacity-30" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

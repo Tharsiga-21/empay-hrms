@@ -1,113 +1,107 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
-import StatCard from '../../components/shared/StatCard';
 import PageHeader from '../../components/shared/PageHeader';
-import StatusBadge from '../../components/shared/StatusBadge';
-import { Users, CheckCircle, CalendarOff, Clock, Banknote } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import StatCard from '../../components/shared/StatCard';
+import { Users, CheckCircle, CalendarOff, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-const COLORS = ['#4F46E5', '#06B6D4', '#22C55E', '#F59E0B', '#EF4444', '#7C3AED', '#EC4899'];
+const PIE_COLORS = ['#4d8eff', '#a78bfa', '#4cd7f6', '#4ade80', '#fbbf24', '#f87171'];
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await api.get('/dashboard/admin');
-        setData(res.data.data);
-      } catch (err) {
-        console.error('Failed to fetch dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    api.get('/dashboard/admin').then(res => {
+      setData(res.data.data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Admin Dashboard" subtitle="Overview of your organization" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 bg-slate-800/50 rounded-xl animate-pulse" />
-          ))}
+        <PageHeader title="Overview" subtitle="Welcome back, here's the latest HR data." />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton h-32 rounded-2xl" />)}
         </div>
       </div>
     );
   }
 
   const attendanceTrend = (data?.attendance_trend || []).map(d => ({
-    date: new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+    date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
     Present: parseInt(d.present),
     Absent: parseInt(d.absent),
     'On Leave': parseInt(d.on_leave),
   }));
 
-  const deptData = (data?.department_headcount || []).map((d, i) => ({
+  const deptData = (data?.department_headcount || []).map(d => ({
     name: d.department,
     value: parseInt(d.count),
-    fill: COLORS[i % COLORS.length],
   }));
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader title="Admin Dashboard" subtitle="Overview of your organization" />
+    <div className="space-y-6">
+      <PageHeader title="Overview" subtitle="Welcome back, here's the latest HR data." />
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Employees" value={data?.active_employees || 0} icon={Users} color="blue" />
-        <StatCard title="Present Today" value={data?.today_present || 0} icon={CheckCircle} color="green" />
-        <StatCard title="On Leave Today" value={data?.today_on_leave || 0} icon={CalendarOff} color="amber" />
-        <StatCard title="Pending Leaves" value={data?.pending_leave_requests || 0} icon={Clock} color="red" />
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard title="Total Employees" value={data?.total_employees || 0} icon={Users} color="primary" trend="+2.4%" />
+        <StatCard title="Present Today" value={data?.today_present || 0} icon={CheckCircle} color="success" subtitle={`${((data?.today_present / (data?.active_employees || 1)) * 100).toFixed(1)}% Rate`} />
+        <StatCard title="On Leave Today" value={data?.today_on_leave || 0} icon={CalendarOff} color="warning" />
+        <StatCard title="Pending Leaves" value={data?.pending_leave_requests || 0} icon={Clock} color="danger" />
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Attendance Trend */}
-        <div className="glass-card rounded-xl p-5">
-          <h3 className="text-sm font-medium text-white mb-4">Attendance Trend (Last 7 Days)</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 glass-card p-5 fade-in">
+          <h3 className="text-lg font-semibold text-on-surface mb-4">Attendance Trends</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={attendanceTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#94a3b8' }} />
-              <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', color: '#fff' }} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="Present" fill="#22C55E" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Absent" fill="#EF4444" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="On Leave" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis dataKey="date" stroke="#8c909f" fontSize={12} />
+              <YAxis stroke="#8c909f" fontSize={12} />
+              <Tooltip contentStyle={{ background: '#171f33', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#dae2fd' }} />
+              <Legend />
+              <Bar dataKey="Present" fill="#4ade80" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Absent" fill="#f87171" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="On Leave" fill="#60a5fa" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Department Distribution */}
-        <div className="glass-card rounded-xl p-5">
-          <h3 className="text-sm font-medium text-white mb-4">Department Distribution</h3>
-          <ResponsiveContainer width="100%" height={280}>
+        <div className="glass-card p-5 fade-in">
+          <h3 className="text-lg font-semibold text-on-surface mb-4">Department Distribution</h3>
+          <ResponsiveContainer width="100%" height={200}>
             <PieChart>
-              <Pie data={deptData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={4} dataKey="value" label={({ name, value }) => `${name} (${value})`}>
-                {deptData.map((entry, i) => (
-                  <Cell key={i} fill={entry.fill} />
+              <Pie data={deptData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value"
+                label={({ name, value }) => `${value}`}>
+                {deptData.map((_, idx) => (
+                  <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', color: '#fff' }} />
+              <Tooltip contentStyle={{ background: '#171f33', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#dae2fd' }} />
             </PieChart>
           </ResponsiveContainer>
+          <div className="flex flex-wrap gap-3 mt-3 justify-center">
+            {deptData.map((d, idx) => (
+              <div key={d.name} className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ background: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                {d.name}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Monthly Payroll */}
-      <div className="glass-card rounded-xl p-5">
+      {/* Payroll Cost */}
+      <div className="glass-card p-5 fade-in">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-white">Monthly Payroll Cost</h3>
-          <div className="flex items-center gap-2 text-emerald-400">
-            <Banknote className="w-4 h-4" />
-            <span className="text-lg font-bold">₹{(data?.monthly_payroll_cost || 0).toLocaleString('en-IN')}</span>
-          </div>
+          <h3 className="text-lg font-semibold text-on-surface">Monthly Payroll Cost</h3>
         </div>
+        <p className="text-3xl font-bold text-primary">₹{(data?.monthly_payroll_cost || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+        <p className="text-xs text-on-surface-variant mt-1">Current month total net pay</p>
       </div>
     </div>
   );

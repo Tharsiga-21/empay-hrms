@@ -1,79 +1,97 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/shared/PageHeader';
-import DataTable from '../../components/shared/DataTable';
-import { Plus, Edit, X } from 'lucide-react';
+import { DollarSign, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function SalaryStructures() {
   const [structures, setStructures] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
-  const [form, setForm] = useState({ employee_id:'', basic_salary:'', hra_percent:40, special_allowance:'', effective_from:'' });
-  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ employee_id: '', basic_salary: '', hra_percent: 40, special_allowance: 0, effective_from: '' });
+  const [submitting, setSubmitting] = useState(false);
 
-  const fetchData = async () => {
+  const fetch = () => {
+    Promise.all([api.get('/payroll/salary-structure'), api.get('/users')])
+      .then(([ssRes, uRes]) => { setStructures(ssRes.data.data); setEmployees(uRes.data.data); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+  useEffect(() => { fetch(); }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setSubmitting(true);
     try {
-      const [sRes, eRes] = await Promise.all([api.get('/payroll/salary-structure'), api.get('/users')]);
-      setStructures(sRes.data.data);
-      setEmployees(eRes.data.data);
-    } catch(e){console.error(e);}
-    finally{setLoading(false);}
+      await api.post('/payroll/salary-structure', form);
+      toast.success('Salary structure saved'); setShowDialog(false); fetch();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    setSubmitting(false);
   };
 
-  useEffect(()=>{fetchData();},[]);
-
-  const handleSave = async (e) => {
-    e.preventDefault(); setSaving(true);
-    try { await api.post('/payroll/salary-structure', form); setShowDialog(false); fetchData(); }
-    catch(err){alert(err.response?.data?.message||'Failed');}
-    finally{setSaving(false);}
-  };
-
-  const handleEdit = (row) => {
-    setForm({ employee_id:row.employee_id, basic_salary:row.basic_salary, hra_percent:row.hra_percent, special_allowance:row.special_allowance, effective_from:row.effective_from?.split('T')[0]||'' });
+  const openEdit = (s) => {
+    setForm({ employee_id: s.employee_id, basic_salary: s.basic_salary, hra_percent: s.hra_percent, special_allowance: s.special_allowance, effective_from: s.effective_from?.split('T')[0] || '' });
     setShowDialog(true);
   };
 
-  const columns = [
-    { header:'Employee', cell:(r)=><div><p className="text-sm font-medium text-white">{r.full_name}</p><p className="text-xs text-slate-500">{r.department}</p></div> },
-    { header:'Basic Salary', cell:(r)=>`₹${parseFloat(r.basic_salary).toLocaleString('en-IN')}` },
-    { header:'HRA %', cell:(r)=>`${r.hra_percent}%` },
-    { header:'Special Allowance', cell:(r)=>`₹${parseFloat(r.special_allowance).toLocaleString('en-IN')}` },
-    { header:'Effective From', cell:(r)=>r.effective_from ? new Date(r.effective_from).toLocaleDateString('en-IN') : '—' },
-    { header:'Actions', cell:(r)=><button onClick={()=>handleEdit(r)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"><Edit className="w-4 h-4" /></button> },
-  ];
-
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader title="Salary Structures" subtitle="Manage employee compensation">
-        <button onClick={()=>{setForm({employee_id:'',basic_salary:'',hra_percent:40,special_allowance:'',effective_from:''});setShowDialog(true);}} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium"><Plus className="w-4 h-4"/>Set Salary</button>
+    <div className="space-y-6">
+      <PageHeader title="Salary Structures" subtitle="Manage employee compensation.">
+        <button onClick={() => { setForm({ employee_id: '', basic_salary: '', hra_percent: 40, special_allowance: 0, effective_from: '' }); setShowDialog(true); }}
+          className="btn-glow flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg,#4d8eff,#571bc1)' }}>
+          <DollarSign className="w-4 h-4" /> Set Salary
+        </button>
       </PageHeader>
-      <DataTable columns={columns} data={structures} searchKey="full_name" isLoading={loading} searchPlaceholder="Search employee..."/>
+
+      <div className="glass-card overflow-hidden fade-in">
+        <table className="w-full glass-table">
+          <thead><tr><th>Employee</th><th>Department</th><th>Basic Salary</th><th>HRA %</th><th>Special Allow.</th><th>Effective From</th><th>Actions</th></tr></thead>
+          <tbody>
+            {loading ? Array.from({length:5}).map((_,i) => <tr key={i}>{Array.from({length:7}).map((_,j)=><td key={j}><div className="skeleton h-4 w-20 rounded"/></td>)}</tr>) :
+            structures.map(s => (
+              <tr key={s.id}>
+                <td className="font-medium text-on-surface">{s.full_name}</td>
+                <td className="text-on-surface-variant">{s.department||'—'}</td>
+                <td className="text-primary font-semibold">₹{parseFloat(s.basic_salary).toLocaleString()}</td>
+                <td>{s.hra_percent}%</td>
+                <td>₹{parseFloat(s.special_allowance).toLocaleString()}</td>
+                <td>{s.effective_from ? new Date(s.effective_from).toLocaleDateString() : '—'}</td>
+                <td><button onClick={() => openEdit(s)} className="px-2.5 py-1 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors">Edit</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       {showDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="glass-card rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-white">Set Salary Structure</h2>
-              <button onClick={()=>setShowDialog(false)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400"><X className="w-5 h-5"/></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowDialog(false)}>
+          <div className="glass-card-strong w-full max-w-md p-6 fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-on-surface">Set Salary Structure</h2>
+              <button onClick={() => setShowDialog(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4"/></button>
             </div>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div><label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Employee</label>
-                <select value={form.employee_id} onChange={e=>setForm({...form,employee_id:e.target.value})} required className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500">
-                  <option value="">Select</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}
-                </select></div>
-              <div><label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Basic Salary (₹)</label>
-                <input type="number" value={form.basic_salary} onChange={e=>setForm({...form,basic_salary:e.target.value})} required className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"/></div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Employee</label>
+                <select value={form.employee_id} onChange={e => setForm(f => ({...f, employee_id: e.target.value}))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" required>
+                  <option value="">Select</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">HRA %</label>
-                  <input type="number" value={form.hra_percent} onChange={e=>setForm({...form,hra_percent:e.target.value})} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"/></div>
-                <div><label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Special Allowance (₹)</label>
-                  <input type="number" value={form.special_allowance} onChange={e=>setForm({...form,special_allowance:e.target.value})} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"/></div>
+                <div><label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Basic Salary</label>
+                  <input type="number" value={form.basic_salary} onChange={e => setForm(f => ({...f, basic_salary: e.target.value}))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" required /></div>
+                <div><label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">HRA %</label>
+                  <input type="number" value={form.hra_percent} onChange={e => setForm(f => ({...f, hra_percent: e.target.value}))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" /></div>
               </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={()=>setShowDialog(false)} className="px-4 py-2 border border-slate-700 rounded-lg text-sm text-slate-300">Cancel</button>
-                <button type="submit" disabled={saving} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium disabled:opacity-50">{saving?'Saving...':'Save'}</button>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Special Allow.</label>
+                  <input type="number" value={form.special_allowance} onChange={e => setForm(f => ({...f, special_allowance: e.target.value}))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" /></div>
+                <div><label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Effective From</label>
+                  <input type="date" value={form.effective_from} onChange={e => setForm(f => ({...f, effective_from: e.target.value}))} className="input-glass w-full px-3 py-2 text-sm rounded-xl" /></div>
               </div>
+              <button type="submit" disabled={submitting} className="btn-glow w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{background:'linear-gradient(135deg,#4d8eff,#571bc1)'}}>
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto"/> : 'Save'}
+              </button>
             </form>
           </div>
         </div>

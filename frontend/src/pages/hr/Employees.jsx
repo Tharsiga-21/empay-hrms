@@ -1,102 +1,96 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/shared/PageHeader';
-import DataTable from '../../components/shared/DataTable';
 import RoleBadge from '../../components/shared/RoleBadge';
-import StatusBadge from '../../components/shared/StatusBadge';
-import { Edit, X } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [editUser, setEditUser] = useState(null);
-  const [form, setForm] = useState({ full_name: '', department: '', designation: '', phone: '' });
-  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchEmployees = async () => {
     try {
-      const res = await api.get('/users');
+      const res = await api.get('/users', { params: { search } });
       setEmployees(res.data.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch { /* empty */ }
+    setLoading(false);
   };
 
-  useEffect(() => { fetchEmployees(); }, []);
+  useEffect(() => { fetchEmployees(); }, [search]);
 
-  const handleEdit = (user) => {
+  const openEdit = (user) => {
     setEditUser(user);
     setForm({ full_name: user.full_name, department: user.department || '', designation: user.designation || '', phone: user.phone || '' });
   };
 
-  const handleSave = async (e) => {
+  const handleEdit = async (e) => {
     e.preventDefault();
-    setSaving(true);
+    setSubmitting(true);
     try {
       await api.put(`/users/${editUser.id}`, form);
+      toast.success('Employee updated');
       setEditUser(null);
       fetchEmployees();
-    } catch (err) { console.error(err); }
-    finally { setSaving(false); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    setSubmitting(false);
   };
 
-  const columns = [
-    {
-      header: 'Employee', cell: (row) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">{row.full_name?.charAt(0)?.toUpperCase()}</div>
-          <div><p className="text-sm font-medium text-white">{row.full_name}</p><p className="text-xs text-slate-500">{row.email}</p></div>
-        </div>
-      ),
-    },
-    { header: 'Role', cell: (row) => <RoleBadge role={row.role} /> },
-    { header: 'Department', accessorKey: 'department' },
-    { header: 'Designation', accessorKey: 'designation' },
-    { header: 'Joined', cell: (row) => new Date(row.date_joined).toLocaleDateString('en-IN') },
-    { header: 'Status', cell: (row) => <StatusBadge status={row.is_active ? 'active' : 'inactive'} /> },
-    {
-      header: 'Actions', cell: (row) => (
-        <button onClick={() => handleEdit(row)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
-          <Edit className="w-4 h-4" />
-        </button>
-      ),
-    },
-  ];
+  const getInitials = (name) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader title="Employees" subtitle="View and manage employee profiles" />
-      <DataTable columns={columns} data={employees} searchKey={['full_name', 'email', 'department']} isLoading={loading} searchPlaceholder="Search employees..." />
+    <div className="space-y-6">
+      <PageHeader title="Employees" subtitle="View and manage all employees." />
+      <div className="relative w-72">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+        <input type="text" placeholder="Search employees..." value={search} onChange={e => setSearch(e.target.value)} className="input-glass w-full pl-10 pr-4 py-2 text-sm rounded-xl" />
+      </div>
+
+      <div className="glass-card overflow-hidden fade-in">
+        <table className="w-full glass-table">
+          <thead><tr><th>Employee</th><th>Email</th><th>Department</th><th>Designation</th><th>Date Joined</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            {loading ? Array.from({length:5}).map((_,i)=><tr key={i}>{Array.from({length:7}).map((_,j)=><td key={j}><div className="skeleton h-4 w-20 rounded"/></td>)}</tr>) :
+            employees.length === 0 ? <tr><td colSpan={7} className="text-center py-12 text-on-surface-variant">No employees found</td></tr> :
+            employees.map(u => (
+              <tr key={u.id}>
+                <td><div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold" style={{background:'linear-gradient(135deg,#4d8eff,#571bc1)',color:'white'}}>{getInitials(u.full_name)}</div>
+                  <span className="font-medium text-on-surface">{u.full_name}</span>
+                </div></td>
+                <td className="text-on-surface-variant">{u.email}</td>
+                <td>{u.department||'—'}</td>
+                <td>{u.designation||'—'}</td>
+                <td>{u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '—'}</td>
+                <td><span className={`chip-${u.is_active?'active':'inactive'} inline-flex px-2 py-0.5 rounded-full text-xs font-semibold`}>{u.is_active?'Active':'Inactive'}</span></td>
+                <td><button onClick={()=>openEdit(u)} className="px-2.5 py-1 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors">Edit</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {editUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="glass-card rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-white">Edit Employee</h2>
-              <button onClick={() => setEditUser(null)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={()=>setEditUser(null)}>
+          <div className="glass-card-strong w-full max-w-md p-6 fade-in" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-on-surface">Edit Employee</h2>
+              <button onClick={()=>setEditUser(null)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4 text-on-surface-variant"/></button>
             </div>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Full Name</label>
-                <input type="text" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Department</label>
-                  <input type="text" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
+            <form onSubmit={handleEdit} className="space-y-4">
+              {['full_name','department','designation','phone'].map(f=>(
+                <div key={f}>
+                  <label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">{f.replace('_',' ')}</label>
+                  <input value={form[f]||''} onChange={e=>setForm(p=>({...p,[f]:e.target.value}))} className="input-glass w-full px-3 py-2 text-sm rounded-xl"/>
                 </div>
-                <div>
-                  <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Designation</label>
-                  <input type="text" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Phone</label>
-                <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setEditUser(null)} className="px-4 py-2 border border-slate-700 rounded-lg text-sm text-slate-300 hover:bg-slate-800">Cancel</button>
-                <button type="submit" disabled={saving} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium disabled:opacity-50">{saving ? 'Saving...' : 'Save Changes'}</button>
-              </div>
+              ))}
+              <button type="submit" disabled={submitting} className="btn-glow w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{background:'linear-gradient(135deg,#4d8eff,#571bc1)'}}>
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto"/> : 'Save Changes'}
+              </button>
             </form>
           </div>
         </div>
