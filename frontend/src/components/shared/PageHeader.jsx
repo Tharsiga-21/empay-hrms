@@ -1,11 +1,11 @@
-export default function PageHeader({ title, subtitle, children }) {
+export default function PageHeader({ title, subtitle, action, children }) {
   return (
-    <div className="flex items-start justify-between mb-6 fade-in">
+    <div className="flex justify-between items-end mb-8">
       <div>
-        <h1 className="text-2xl font-bold text-on-surface tracking-tight">{title}</h1>
-        {subtitle && <p className="text-sm text-on-surface-variant mt-1">{subtitle}</p>}
+        <h2 className="text-[32px] font-semibold leading-[1.2] tracking-[-0.01em]" style={{ color: '#dae2fd', fontFamily: 'Inter' }}>{title}</h2>
+        {subtitle && <p className="text-base mt-1" style={{ color: '#c2c6d6' }}>{subtitle}</p>}
       </div>
-      {children && <div className="flex items-center gap-3">{children}</div>}
+      {action || children}
     </div>
   );
 }

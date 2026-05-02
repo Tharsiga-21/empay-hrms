@@ -57,26 +57,52 @@ export default function MyLeaves() {
       </div>
 
       {tab === 'balance' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {allocations.map(a => {
-            const pct = a.allocated_days > 0 ? (a.used_days / a.allocated_days * 100) : 0;
-            return (
-              <div key={a.id} className="glass-card p-5 fade-in">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs uppercase tracking-widest font-semibold text-on-surface-variant">{a.name}</p>
-                  <div className="w-3 h-3 rounded-full" style={{ background: colors[a.name] || '#4d8eff' }} />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {allocations.map(a => {
+              const pct = a.allocated_days > 0 ? (a.used_days / a.allocated_days * 100) : 0;
+              return (
+                <div key={a.id} className="glass-panel rounded-2xl p-5 fade-in">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs uppercase tracking-widest font-semibold text-on-surface-variant">{a.name}</p>
+                    <div className="w-3 h-3 rounded-full" style={{ background: colors[a.name] || '#4d8eff' }} />
+                  </div>
+                  <p className="text-3xl font-bold text-on-surface mb-1">{a.remaining} <span className="text-lg text-on-surface-variant font-normal">days left</span></p>
+                  <p className="text-xs text-on-surface-variant mb-3">Allocated: {a.allocated_days} · Used: {a.used_days}</p>
+                  <div className="progress-bar"><div className="progress-bar-fill" style={{ width: `${Math.min(pct, 100)}%`, background: colors[a.name] || '#4d8eff' }} /></div>
                 </div>
-                <p className="text-3xl font-bold text-on-surface mb-1">{a.remaining} <span className="text-lg text-on-surface-variant font-normal">days left</span></p>
-                <p className="text-xs text-on-surface-variant mb-3">Allocated: {a.allocated_days} · Used: {a.used_days}</p>
-                <div className="progress-bar"><div className="progress-bar-fill" style={{ width: `${Math.min(pct, 100)}%`, background: colors[a.name] || '#4d8eff' }} /></div>
+              );
+            })}
+          </div>
+
+          {allocations.some(a => a.used_days > a.allocated_days) && (
+            <div className="glass-panel rounded-2xl p-5 fade-in border border-red-500/30" style={{ background: 'rgba(248, 113, 113, 0.05)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-red-500/20 text-red-400">
+                  <X className="w-4 h-4" />
+                </div>
+                <h3 className="text-lg font-bold text-red-400">Extra Leaves & Deductions</h3>
               </div>
-            );
-          })}
+              <p className="text-sm text-on-surface-variant mb-4">
+                You have exceeded your allocated leave limit. Extra leaves taken will result in a proportional salary deduction at the end of the month.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {allocations.filter(a => a.used_days > a.allocated_days).map(a => (
+                  <div key={'extra-'+a.id} className="p-3 rounded-xl bg-black/20 border border-white/5">
+                    <p className="text-xs font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">{a.name}</p>
+                    <p className="text-2xl font-bold text-red-400">
+                      +{a.used_days - a.allocated_days} <span className="text-sm font-normal text-on-surface-variant">extra days</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {tab === 'history' && (
-        <div className="glass-card overflow-hidden fade-in">
+        <div className="glass-panel rounded-2xl overflow-hidden fade-in">
           <table className="w-full glass-table">
             <thead><tr><th>Type</th><th>Start</th><th>End</th><th>Days</th><th>Reason</th><th>Status</th><th>Applied On</th></tr></thead>
             <tbody>
@@ -100,7 +126,7 @@ export default function MyLeaves() {
 
       {showApply && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowApply(false)}>
-          <div className="glass-card-strong w-full max-w-md p-6 fade-in" onClick={e => e.stopPropagation()}>
+          <div className="glass-panel-elevated w-full max-w-md p-6 fade-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-on-surface">Apply for Leave</h2>
               <button onClick={() => setShowApply(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4"/></button>
