@@ -50,7 +50,7 @@ export default function MyAttendance() {
       </div>
 
       {/* Calendar Grid */}
-      <div className="glass-card p-5 fade-in">
+      <div className="glass-panel rounded-2xl p-6 ">
         <div className="grid grid-cols-7 gap-1 mb-2">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
             <div key={d} className="text-center text-xs font-semibold text-on-surface-variant py-2">{d}</div>
@@ -64,7 +64,7 @@ export default function MyAttendance() {
             const dayOfWeek = new Date(year, month - 1, day).getDay();
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
             const isFuture = new Date(year, month - 1, day) > new Date();
-            const bg = isFuture ? 'transparent' : isWeekend ? 'rgba(255,255,255,0.03)' : record ? `${statusColors[record.status]}20` : 'rgba(255,255,255,0.02)';
+            const bg = isFuture ? 'transparent' : isWeekend ? 'rgba(195, 14, 14, 0.91)' : record ? `${statusColors[record.status]}20` : 'rgba(213, 35, 35, 0.94)';
             const border = record ? `1px solid ${statusColors[record.status]}40` : '1px solid transparent';
 
             return (
@@ -72,7 +72,7 @@ export default function MyAttendance() {
                 <span className={`font-medium ${isWeekend ? 'text-on-surface-variant/40' : 'text-on-surface'}`}>{day}</span>
                 {record && <span className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ background: statusColors[record.status] }} />}
                 {record && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 glass-card-strong px-3 py-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 glass-panel-elevated px-3 py-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
                     <p className="capitalize font-medium">{record.status?.replace('_', ' ')}</p>
                     {record.check_in && <p className="text-on-surface-variant">In: {record.check_in.substring(0, 5)}</p>}
                     {record.check_out && <p className="text-on-surface-variant">Out: {record.check_out.substring(0, 5)}</p>}
