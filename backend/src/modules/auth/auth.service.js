@@ -1,6 +1,8 @@
 const { pool } = require('../../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { sendEmail } = require('../../utils/mailer');
 
 class AuthService {
   async register(userData) {
@@ -88,6 +90,53 @@ class AuthService {
     }
 
     return result.rows[0];
+  }
+
+  async forgotPassword(email) {
+    const result = await pool.query('SELECT id, full_name FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0) return; // Do nothing if user not found, prevent enumeration
+
+    const user = result.rows[0];
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    // Token expires in 1 hour
+    const expiry = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    await pool.query(
+      'UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE id = $3',
+      [resetTokenHash, expiry, user.id]
+    );
+
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    
+    await sendEmail(
+      email,
+      'Password Reset Request - EmPay HRMS',
+      `Hi ${user.full_name},\n\nYou requested a password reset. Click here: ${resetUrl}\n\nIf you didn't request this, please ignore this email.`,
+      `<p>Hi ${user.full_name},</p><p>You requested a password reset. Click the link below to reset it:</p><p><a href="${resetUrl}">Reset Password</a></p><p>If you didn't request this, please ignore this email.</p>`
+    );
+  }
+
+  async resetPassword(token, newPassword) {
+    const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    
+    const result = await pool.query(
+      'SELECT id FROM users WHERE reset_token = $1 AND reset_token_expiry > NOW()',
+      [resetTokenHash]
+    );
+
+    if (result.rows.length === 0) {
+      throw { status: 400, message: 'Invalid or expired password reset token' };
+    }
+
+    const userId = result.rows[0].id;
+    const passwordHash = await bcrypt.hash(newPassword, parseInt(process.env.BCRYPT_ROUNDS) || 10);
+
+    await pool.query(
+      'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2',
+      [passwordHash, userId]
+    );
   }
 }
 

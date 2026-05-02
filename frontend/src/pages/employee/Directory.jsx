@@ -42,8 +42,8 @@ export default function Directory() {
               <div className="mt-2"><RoleBadge role={e.role} /></div>
               <p className="text-xs text-on-surface-variant mt-2">{e.department || '—'}</p>
               <div className="flex items-center gap-3 mt-3">
-                {e.email && <a href={`mailto:${e.email}`} className="p-1.5 rounded-lg hover:bg-white/5 text-on-surface-variant hover:text-primary transition-colors"><Mail className="w-3.5 h-3.5" /></a>}
-                {e.phone && <a href={`tel:${e.phone}`} className="p-1.5 rounded-lg hover:bg-white/5 text-on-surface-variant hover:text-primary transition-colors"><Phone className="w-3.5 h-3.5" /></a>}
+                {e.email && <a href={`mailto:${e.email}`} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)] text-on-surface-variant hover:text-primary transition-colors"><Mail className="w-3.5 h-3.5" /></a>}
+                {e.phone && <a href={`tel:${e.phone}`} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)] text-on-surface-variant hover:text-primary transition-colors"><Phone className="w-3.5 h-3.5" /></a>}
               </div>
             </div>
           ))}

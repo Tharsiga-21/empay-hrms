@@ -67,7 +67,7 @@ export default function SalaryStructures() {
           <div className="glass-card-strong w-full max-w-md p-6 fade-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-on-surface">Set Salary Structure</h2>
-              <button onClick={() => setShowDialog(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4"/></button>
+              <button onClick={() => setShowDialog(false)} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)]"><X className="w-4 h-4"/></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

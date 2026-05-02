@@ -99,7 +99,7 @@ export default function Employees() {
           <div className="glass-card-strong w-full max-w-md p-6 fade-in" onClick={e=>e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-on-surface">Edit Employee</h2>
-              <button onClick={()=>setEditUser(null)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4 text-on-surface-variant"/></button>
+              <button onClick={()=>setEditUser(null)} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)]"><X className="w-4 h-4 text-on-surface-variant"/></button>
             </div>
             <form onSubmit={handleEdit} className="space-y-4">
               {['full_name','department','designation','phone'].map(f=>(

@@ -13,4 +13,10 @@ router.post('/login', authController.login);
 // GET /api/auth/me - Authenticated
 router.get('/me', authMiddleware, authController.getMe);
 
+// POST /api/auth/forgot-password
+router.post('/forgot-password', authController.forgotPassword);
+
+// POST /api/auth/reset-password
+router.post('/reset-password', authController.resetPassword);
+
 module.exports = router;

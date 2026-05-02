@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
 import PageHeader from '../../components/shared/PageHeader';
@@ -12,6 +12,9 @@ export default function Profile() {
     full_name: user?.full_name || '', phone: user?.phone || '', department: user?.department || '', designation: user?.designation || '',
   });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   const handleSave = async (e) => {
     e.preventDefault(); setSaving(true);
@@ -21,6 +24,26 @@ export default function Profile() {
       toast.success('Profile updated');
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     setSaving(false);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setUploading(true);
+    try {
+      const res = await api.post('/users/me/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      updateUser({ profile_pic: res.data.data.profile_pic });
+      toast.success('Profile picture updated');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload image');
+    }
+    setUploading(false);
   };
 
   const getInitials = (name) => name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
@@ -33,12 +56,21 @@ export default function Profile() {
         {/* Profile Card */}
         <div className="glass-card p-6 flex flex-col items-center text-center fade-in">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold"
-              style={{ background: 'linear-gradient(135deg, #4d8eff, #571bc1)', color: 'white' }}>
-              {getInitials(user?.full_name)}
-            </div>
-            <button className="absolute bottom-0 right-0 p-2 rounded-full" style={{ background: 'rgba(77,142,255,0.3)', border: '1px solid rgba(77,142,255,0.5)' }}>
-              <Camera className="w-3.5 h-3.5 text-primary" />
+            {user?.profile_pic ? (
+              <img src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${user.profile_pic}`} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-surface" />
+            ) : (
+              <div className="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold"
+                style={{ background: 'linear-gradient(135deg, #4d8eff, #571bc1)', color: 'white' }}>
+                {getInitials(user?.full_name)}
+              </div>
+            )}
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="absolute bottom-0 right-0 p-2 rounded-full cursor-pointer hover:scale-110 transition-transform disabled:opacity-50" 
+              style={{ background: 'rgba(77,142,255,0.3)', border: '1px solid rgba(77,142,255,0.5)', backdropFilter: 'blur(4px)' }}>
+              {uploading ? <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" /> : <Camera className="w-3.5 h-3.5 text-primary" />}
             </button>
           </div>
           <h2 className="text-lg font-bold text-on-surface mt-4">{user?.full_name}</h2>

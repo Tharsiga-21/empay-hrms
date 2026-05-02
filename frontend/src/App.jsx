@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import AppLayout from './components/layout/AppLayout';
 import Landing from './pages/public/Landing';
 import Login from './pages/auth/Login';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import Settings from './pages/admin/Settings';
@@ -41,11 +44,23 @@ function RoleRedirect() {
 }
 
 function AppRoutes() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0b1326]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/redirect" element={<RoleRedirect />} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+      <Route path="/forgot-password" element={!user ? <ForgotPassword /> : <Navigate to="/" />} />
+      <Route path="/reset-password" element={!user ? <ResetPassword /> : <Navigate to="/" />} />
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         {/* Employee */}
         <Route path="dashboard" element={<EmployeeDashboard />} />
@@ -74,15 +89,34 @@ function AppRoutes() {
   );
 }
 
+function ThemedToaster() {
+  const { resolvedTheme } = useTheme();
+  return (
+    <Toaster
+      theme={resolvedTheme}
+      position="top-right"
+      richColors
+      closeButton
+      toastOptions={{
+        style: {
+          background: 'var(--chart-tooltip-bg)',
+          border: '1px solid var(--chart-tooltip-border)',
+          color: 'var(--chart-tooltip-color)',
+        },
+      }}
+    />
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-        <Toaster theme="dark" position="top-right" richColors closeButton toastOptions={{
-          style: { background: '#171f33', border: '1px solid rgba(255,255,255,0.1)', color: '#dae2fd' }
-        }} />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+          <ThemedToaster />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

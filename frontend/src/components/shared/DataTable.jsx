@@ -4,7 +4,7 @@ export default function DataTable({ columns, data, searchKey, isLoading, searchV
   return (
     <div className="glass-card overflow-hidden fade-in">
       {searchKey && (
-        <div className="p-4 border-b border-white/5">
+        <div className="p-4" style={{ borderBottom: '1px solid var(--table-border)' }}>
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
             <input

@@ -3,6 +3,7 @@ const router = express.Router();
 const usersController = require('./users.controller');
 const authMiddleware = require('../../middleware/auth');
 const roleGuard = require('../../middleware/roleGuard');
+const upload = require('../../middleware/upload');
 
 router.use(authMiddleware);
 
@@ -11,6 +12,9 @@ router.get('/', roleGuard(['admin', 'hr_officer', 'payroll_officer', 'employee']
 
 // GET /api/users/:id
 router.get('/:id', usersController.getById);
+
+// POST /api/users/me/avatar
+router.post('/me/avatar', upload.single('avatar'), usersController.uploadAvatar);
 
 // PUT /api/users/:id
 router.put('/:id', usersController.update);

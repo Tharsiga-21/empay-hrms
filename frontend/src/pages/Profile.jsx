@@ -27,19 +27,19 @@ export default function Profile() {
   return (
     <div className="space-y-6 animate-fadeIn max-w-2xl">
       <PageHeader title="My Profile" subtitle="View and update your personal information">
-        <button onClick={() => setEditing(!editing)} className="flex items-center gap-2 px-4 py-2 border border-slate-700 rounded-lg text-sm text-slate-300 hover:bg-slate-800">
+        <button onClick={() => setEditing(!editing)} className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-lg text-sm text-on-surface-variant hover:bg-[var(--sidebar-hover)] transition-colors">
           <Edit className="w-4 h-4" /> {editing ? 'Cancel' : 'Edit'}
         </button>
       </PageHeader>
 
       <div className="glass-card rounded-xl p-6">
         <div className="flex items-center gap-6 mb-8">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-2xl font-bold shadow-lg">
             {user?.full_name?.charAt(0)?.toUpperCase()}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">{user?.full_name}</h2>
-            <p className="text-sm text-slate-400">{user?.email}</p>
+            <h2 className="text-xl font-bold text-on-surface">{user?.full_name}</h2>
+            <p className="text-sm text-on-surface-variant mt-1">{user?.email}</p>
             <RoleBadge role={user?.role} className="mt-2" />
           </div>
         </div>
@@ -47,41 +47,41 @@ export default function Profile() {
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Full Name</label>
-              {editing ? <input type="text" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                : <p className="text-sm text-white py-2">{user?.full_name}</p>}
+              <label className="block text-xs uppercase tracking-wide text-on-surface-variant mb-1.5 font-semibold">Full Name</label>
+              {editing ? <input type="text" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-sm text-on-surface focus:outline-none focus:border-primary transition-colors" />
+                : <p className="text-sm text-on-surface py-2 font-medium">{user?.full_name}</p>}
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Email</label>
-              <p className="text-sm text-white py-2">{user?.email}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Department</label>
-              {editing ? <input type="text" value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                : <p className="text-sm text-white py-2">{user?.department || '—'}</p>}
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Designation</label>
-              {editing ? <input type="text" value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                : <p className="text-sm text-white py-2">{user?.designation || '—'}</p>}
+              <label className="block text-xs uppercase tracking-wide text-on-surface-variant mb-1.5 font-semibold">Email</label>
+              <p className="text-sm text-on-surface py-2 font-medium">{user?.email}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Phone</label>
-              {editing ? <input type="text" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500" />
-                : <p className="text-sm text-white py-2">{user?.phone || '—'}</p>}
+              <label className="block text-xs uppercase tracking-wide text-on-surface-variant mb-1.5 font-semibold">Department</label>
+              {editing ? <input type="text" value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-sm text-on-surface focus:outline-none focus:border-primary transition-colors" />
+                : <p className="text-sm text-on-surface py-2 font-medium">{user?.department || '—'}</p>}
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-500 mb-1.5">Date Joined</label>
-              <p className="text-sm text-white py-2">{user?.date_joined ? new Date(user.date_joined).toLocaleDateString('en-IN') : '—'}</p>
+              <label className="block text-xs uppercase tracking-wide text-on-surface-variant mb-1.5 font-semibold">Designation</label>
+              {editing ? <input type="text" value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-sm text-on-surface focus:outline-none focus:border-primary transition-colors" />
+                : <p className="text-sm text-on-surface py-2 font-medium">{user?.designation || '—'}</p>}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-on-surface-variant mb-1.5 font-semibold">Phone</label>
+              {editing ? <input type="text" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-sm text-on-surface focus:outline-none focus:border-primary transition-colors" />
+                : <p className="text-sm text-on-surface py-2 font-medium">{user?.phone || '—'}</p>}
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-on-surface-variant mb-1.5 font-semibold">Date Joined</label>
+              <p className="text-sm text-on-surface py-2 font-medium">{user?.date_joined ? new Date(user.date_joined).toLocaleDateString('en-IN') : '—'}</p>
             </div>
           </div>
           {editing && (
             <div className="flex justify-end pt-4">
-              <button type="submit" disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium disabled:opacity-50">
+              <button type="submit" disabled={saving} className="btn-glow flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50">
                 <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>

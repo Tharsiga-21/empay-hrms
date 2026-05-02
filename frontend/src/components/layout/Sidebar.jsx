@@ -48,11 +48,11 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 h-screen fixed left-0 top-0 flex flex-col z-40"
+    <aside className="w-64 h-screen fixed left-0 top-0 flex flex-col z-40 transition-colors duration-300"
       style={{
-        background: 'rgba(11, 19, 38, 0.95)',
+        background: 'var(--sidebar-bg)',
         backdropFilter: 'blur(20px)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
+        borderRight: '1px solid var(--sidebar-border)',
       }}>
       {/* Brand */}
       <div className="p-6 flex items-center gap-3">
@@ -61,7 +61,7 @@ export default function Sidebar() {
           <Building2 className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-base font-bold text-white tracking-tight">EmPay HRMS</h1>
+          <h1 className="text-base font-bold text-on-surface tracking-tight">EmPay HRMS</h1>
           <p className="text-[0.65rem] text-on-surface-variant tracking-widest uppercase">Enterprise Portal</p>
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function Sidebar() {
       </nav>
 
       {/* User Profile */}
-      <div className="p-4 border-t border-white/5">
+      <div className="p-4" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold"
             style={{ background: 'linear-gradient(135deg, #4d8eff, #571bc1)', color: 'white' }}>
@@ -97,7 +97,7 @@ export default function Sidebar() {
             <p className="text-sm font-medium text-on-surface truncate">{user?.full_name}</p>
             <p className="text-[0.65rem] text-on-surface-variant truncate capitalize">{user?.role?.replace('_', ' ')}</p>
           </div>
-          <button onClick={logout} className="p-1.5 rounded-lg hover:bg-white/5 text-on-surface-variant hover:text-error transition-colors" title="Logout">
+          <button onClick={logout} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)] text-on-surface-variant hover:text-error transition-colors" title="Logout">
             <LogOut className="w-4 h-4" />
           </button>
         </div>

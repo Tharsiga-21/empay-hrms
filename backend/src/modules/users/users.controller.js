@@ -49,4 +49,17 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, update, toggleActive, deleteUser };
+const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file provided' });
+    }
+    const avatarUrl = `/avatars/${req.file.filename}`;
+    const user = await usersService.updateProfilePic(req.user.id, avatarUrl);
+    res.json({ success: true, message: 'Profile picture updated', data: { profile_pic: user.profile_pic } });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Internal server error' });
+  }
+};
+
+module.exports = { getAll, getById, update, toggleActive, deleteUser, uploadAvatar };

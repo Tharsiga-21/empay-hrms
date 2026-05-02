@@ -111,6 +111,18 @@ class UsersService {
     }
     return result.rows[0];
   }
+
+  async updateProfilePic(id, avatarUrl) {
+    const result = await pool.query(
+      `UPDATE users SET profile_pic = $1, updated_at = NOW() WHERE id = $2
+       RETURNING id, full_name, profile_pic`,
+      [avatarUrl, id]
+    );
+    if (result.rows.length === 0) {
+      throw { status: 404, message: 'User not found' };
+    }
+    return result.rows[0];
+  }
 }
 
 module.exports = new UsersService();

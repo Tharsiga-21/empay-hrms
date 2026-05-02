@@ -73,7 +73,7 @@ export default function MyPayslips() {
                 <h2 className="text-lg font-bold text-on-surface">Salary Slip</h2>
                 <p className="text-sm text-on-surface-variant">For the month of {months[slipDetail.month - 1]} {slipDetail.year}</p>
               </div>
-              <button onClick={() => setViewSlip(null)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
+              <button onClick={() => setViewSlip(null)} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)]"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
@@ -83,7 +83,7 @@ export default function MyPayslips() {
                   <div className="flex justify-between"><span className="text-on-surface-variant">Basic Salary</span><span className="text-on-surface">₹{parseFloat(slipDetail.basic).toLocaleString()}</span></div>
                   <div className="flex justify-between"><span className="text-on-surface-variant">HRA</span><span className="text-on-surface">₹{parseFloat(slipDetail.hra).toLocaleString()}</span></div>
                   <div className="flex justify-between"><span className="text-on-surface-variant">Special Allowance</span><span className="text-on-surface">₹{parseFloat(slipDetail.special_allowance).toLocaleString()}</span></div>
-                  <div className="border-t border-white/10 pt-2 mt-2 flex justify-between font-semibold"><span className="text-on-surface">Gross Earnings</span><span className="text-primary">₹{parseFloat(slipDetail.gross_salary).toLocaleString()}</span></div>
+                  <div className="border-t border-[var(--glass-border)] pt-2 mt-2 flex justify-between font-semibold"><span className="text-on-surface">Gross Earnings</span><span className="text-primary">₹{parseFloat(slipDetail.gross_salary).toLocaleString()}</span></div>
                 </div>
               </div>
               <div className="glass-card p-4">
@@ -94,7 +94,7 @@ export default function MyPayslips() {
                   {parseFloat(slipDetail.unpaid_deduction) > 0 && (
                     <div className="flex justify-between"><span className="text-on-surface-variant">Loss of Pay (Unpaid Leave)</span><span className="text-on-surface">₹{parseFloat(slipDetail.unpaid_deduction).toLocaleString()}</span></div>
                   )}
-                  <div className="border-t border-white/10 pt-2 mt-2 flex justify-between font-semibold"><span className="text-on-surface">Total Deductions</span><span className="text-danger">₹{parseFloat(slipDetail.total_deductions).toLocaleString()}</span></div>
+                  <div className="border-t border-[var(--glass-border)] pt-2 mt-2 flex justify-between font-semibold"><span className="text-on-surface">Total Deductions</span><span className="text-danger">₹{parseFloat(slipDetail.total_deductions).toLocaleString()}</span></div>
                 </div>
               </div>
             </div>

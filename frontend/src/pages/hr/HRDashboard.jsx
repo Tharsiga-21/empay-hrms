@@ -32,7 +32,7 @@ export default function HRDashboard() {
             <p className="text-sm text-on-surface-variant py-8 text-center">No employees on leave today</p>
           ) : (
             <div className="space-y-3">{data.on_leave_today.map(emp => (
-              <div key={emp.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/3">
+              <div key={emp.id} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--table-row-hover)]">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold" style={{ background: 'linear-gradient(135deg, #4d8eff, #571bc1)', color: 'white' }}>
                   {emp.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
@@ -47,7 +47,7 @@ export default function HRDashboard() {
           <h3 className="text-lg font-semibold text-on-surface mb-4">Recent Leave Requests</h3>
           <div className="space-y-2">
             {(data?.recent_leave_requests || []).slice(0, 8).map(r => (
-              <div key={r.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3">
+              <div key={r.id} className="flex items-center justify-between p-3 rounded-xl bg-[var(--table-row-hover)]">
                 <div>
                   <p className="text-sm font-medium text-on-surface">{r.full_name}</p>
                   <p className="text-xs text-on-surface-variant">{r.leave_type_name} · {r.total_days} day(s)</p>

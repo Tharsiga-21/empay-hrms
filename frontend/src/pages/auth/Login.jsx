@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Eye, EyeOff, Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -54,7 +54,7 @@ export default function Login() {
 
       {/* Extra gradient orb */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px]"
-        style={{ background: 'radial-gradient(circle, rgba(87,27,193,0.15) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+        style={{ background: 'radial-gradient(circle, rgba(87,27,193,0.15) 0%, transparent 70%)', transform: 'translateZ(0)' }} />
 
       <div className="glass-card-strong w-full max-w-md p-8 fade-in relative z-10">
         {/* Logo */}
@@ -104,6 +104,11 @@ export default function Login() {
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
+              <div className="flex justify-between items-center mt-3">
+                <Link to="/forgot-password" className="text-xs text-primary hover:underline font-medium">
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -133,7 +138,7 @@ export default function Login() {
               { label: 'Employee', email: 'sneha@empay.com' }
             ].map(r => (
               <button key={r.email} onClick={() => autoLogin(r.email)} disabled={loading}
-                className="px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:text-white transition-all border border-white/5 hover:border-primary/30 hover:bg-primary/10 flex flex-col items-start gap-0.5 text-left disabled:opacity-50">
+                className="px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all border hover:border-primary/30 hover:bg-primary/10 flex flex-col items-start gap-0.5 text-left disabled:opacity-50" style={{ borderColor: 'var(--glass-border)' }}>
                 <span className="font-semibold">{r.label}</span>
                 <span className="text-[0.65rem] opacity-70 truncate w-full">{r.email}</span>
               </button>

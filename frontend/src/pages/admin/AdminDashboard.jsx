@@ -59,10 +59,10 @@ export default function AdminDashboard() {
           <h3 className="text-lg font-semibold text-on-surface mb-4">Attendance Trends</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={attendanceTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="date" stroke="#8c909f" fontSize={12} />
-              <YAxis stroke="#8c909f" fontSize={12} />
-              <Tooltip contentStyle={{ background: '#171f33', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#dae2fd' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="date" stroke="var(--chart-axis)" fontSize={12} />
+              <YAxis stroke="var(--chart-axis)" fontSize={12} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: '12px', color: 'var(--chart-tooltip-color)' }} />
               <Legend />
               <Bar dataKey="Present" fill="#4ade80" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Absent" fill="#f87171" radius={[4, 4, 0, 0]} />
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
                   <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ background: '#171f33', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#dae2fd' }} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: '12px', color: 'var(--chart-tooltip-color)' }} />
             </PieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-3 mt-3 justify-center">

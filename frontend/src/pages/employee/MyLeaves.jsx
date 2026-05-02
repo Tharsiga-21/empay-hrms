@@ -50,7 +50,7 @@ export default function MyLeaves() {
         </button>
       </PageHeader>
 
-      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.05)' }}>
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--glass-bg)' }}>
         {[{ key: 'balance', label: 'My Leave Balance' }, { key: 'history', label: 'Apply & History' }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.key ? 'bg-primary/15 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}>{t.label}</button>
         ))}
@@ -88,7 +88,7 @@ export default function MyLeaves() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {allocations.filter(a => a.used_days > a.allocated_days).map(a => (
-                  <div key={'extra-'+a.id} className="p-3 rounded-xl bg-black/20 border border-white/5">
+                  <div key={'extra-'+a.id} className="p-3 rounded-xl" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}>
                     <p className="text-xs font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">{a.name}</p>
                     <p className="text-2xl font-bold text-red-400">
                       +{a.used_days - a.allocated_days} <span className="text-sm font-normal text-on-surface-variant">extra days</span>
@@ -129,7 +129,7 @@ export default function MyLeaves() {
           <div className="glass-panel-elevated w-full max-w-md p-6 fade-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-on-surface">Apply for Leave</h2>
-              <button onClick={() => setShowApply(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4"/></button>
+              <button onClick={() => setShowApply(false)} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)]"><X className="w-4 h-4"/></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div><label className="block text-xs uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Leave Type</label>

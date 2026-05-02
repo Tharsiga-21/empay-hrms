@@ -90,7 +90,7 @@ export default function Payruns() {
           <div className="glass-card-strong w-full max-w-sm p-6 fade-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-on-surface">Generate Payrun</h2>
-              <button onClick={() => setShowGen(false)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
+              <button onClick={() => setShowGen(false)} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)]"><X className="w-4 h-4" /></button>
             </div>
             <form onSubmit={handleGenerate} className="space-y-4">
               <div>
@@ -116,7 +116,7 @@ export default function Payruns() {
           <div className="glass-card-strong w-full max-w-4xl max-h-[85vh] p-6 overflow-y-auto fade-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-on-surface">Payslips — {months[viewPayslips.month - 1]} {viewPayslips.year}</h2>
-              <button onClick={() => setViewPayslips(null)} className="p-1.5 rounded-lg hover:bg-white/5"><X className="w-4 h-4" /></button>
+              <button onClick={() => setViewPayslips(null)} className="p-1.5 rounded-lg hover:bg-[var(--sidebar-hover)]"><X className="w-4 h-4" /></button>
             </div>
             <table className="w-full glass-table">
               <thead><tr><th>Employee</th><th>Basic</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Actions</th></tr></thead>

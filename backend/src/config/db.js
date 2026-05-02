@@ -167,6 +167,25 @@ const SCHEMA = `
     CONSTRAINT unpaid_within_working   CHECK (unpaid_leave_days <= working_days)
   );
 
+  -- ── Notifications ──────────────────────────────────────────────────────────
+  CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) DEFAULT 'info',
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+  -- ── Settings ───────────────────────────────────────────────────────────────
+  CREATE TABLE IF NOT EXISTS settings (
+    id SERIAL PRIMARY KEY,
+    key VARCHAR(100) UNIQUE NOT NULL,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
   -- ── Indexes ────────────────────────────────────────────────────────────────
 
   -- Users: role/department/active-status are common filters
@@ -321,7 +340,7 @@ const buildPayslip = ({
 
 // ─── Migration ────────────────────────────────────────────────────────────────
 
-const createTables = async () => {
+const initTables = async () => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -340,7 +359,7 @@ const createTables = async () => {
 // ─── Entry Point ──────────────────────────────────────────────────────────────
 
 if (process.argv.includes('--migrate')) {
-  createTables()
+  initTables()
     .then(() => {
       console.log('✅ Migration complete.');
       process.exit(0);
@@ -350,7 +369,7 @@ if (process.argv.includes('--migrate')) {
 
 module.exports = {
   pool,
-  createTables,
+  initTables,
   checkIn,
   checkOut,
   calcUnpaidDeduction,
