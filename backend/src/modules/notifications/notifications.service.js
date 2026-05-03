@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const { sendEmail } = require('../../utils/mailer');
 
 class NotificationsService {
   async getAll(userId) {
@@ -28,18 +29,29 @@ class NotificationsService {
       const today = new Date().toLocaleDateString('en-CA');
       const existing = await pool.query(
         `SELECT id FROM notifications 
-         WHERE title = $1 AND created_at::date = $2 LIMIT 1`,
-        [title, today]
+         WHERE title = $1 AND message = $2 AND created_at::date = $3 LIMIT 1`,
+        [title, message, today]
       );
       if (existing.rows.length > 0) return;
     }
 
     const hrUsers = await pool.query(
-      `SELECT id FROM users WHERE role IN ('admin', 'hr_officer') AND is_active = true`
+      `SELECT id, email, full_name FROM users WHERE role IN ('admin', 'hr_officer') AND is_active = true`
     );
 
     for (const hr of hrUsers.rows) {
+      // In-app notification
       await this.create(hr.id, title, message, type);
+      
+      // Email notification (for important alerts)
+      if (type === 'warning' || title.includes('Leave')) {
+        sendEmail(
+          hr.email, 
+          `EmPay Alert: ${title}`, 
+          `Hi ${hr.full_name},\n\nThis is an automated HRMS alert:\n\n${message}\n\nPlease check the dashboard for details.`,
+          `<h2>EmPay Alert 📧</h2><p>Hi ${hr.full_name},</p><p>This is an automated HRMS alert:</p><div style="padding:15px; background:#f4f7f6; border-left:4px solid #4d8eff; margin:20px 0;"><strong>${title}</strong><br/>${message}</div><p>Please check the admin dashboard for details.</p>`
+        ).catch(err => console.error(`Failed to send HR email to ${hr.email}:`, err.message));
+      }
     }
   }
 

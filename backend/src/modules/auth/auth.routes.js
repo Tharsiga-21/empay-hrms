@@ -19,4 +19,7 @@ router.post('/forgot-password', authController.forgotPassword);
 // POST /api/auth/reset-password
 router.post('/reset-password', authController.resetPassword);
 
+// POST /api/auth/test-email - Admin only
+router.post('/test-email', authMiddleware, roleGuard(['admin']), authController.testEmail);
+
 module.exports = router;

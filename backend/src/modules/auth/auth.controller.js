@@ -79,4 +79,25 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, forgotPassword, resetPassword };
+const testEmail = async (req, res) => {
+  try {
+    const { sendEmail } = require('../../utils/mailer');
+    await sendEmail(
+      req.body.email || req.user.email,
+      'EmPay SMTP Test 📧',
+      'This is a test email to verify that your Gmail SMTP is configured correctly! If you received this, everything is working perfectly.',
+      '<h2>EmPay SMTP Test 📧</h2><p>This is a test email to verify that your Gmail SMTP is configured correctly! If you received this, everything is working perfectly.</p>'
+    );
+    res.json({ success: true, message: 'Test email sent successfully! Check your inbox.' });
+  } catch (error) {
+    console.error('❌ SMTP Test Failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send test email', 
+      error: error.message,
+      hint: 'Ensure you are using a 16-character Google App Password, not your regular password.'
+    });
+  }
+};
+
+module.exports = { register, login, getMe, forgotPassword, resetPassword, testEmail };

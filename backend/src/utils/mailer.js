@@ -4,17 +4,25 @@ let transporter;
 
 const initMailer = async () => {
   // If SMTP credentials are provided, use real SMTP (works in any environment)
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true', // true for port 465, false for 587
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const transportConfig = {
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
       }
-    });
-    console.log(`📧 Real SMTP configured (${process.env.SMTP_HOST}). Emails will be delivered to real inboxes.`);
+    };
+
+    // If it's gmail, use the service shortcut for better reliability
+    if (process.env.SMTP_HOST?.includes('gmail') || process.env.SMTP_USER?.includes('gmail')) {
+      transportConfig.service = 'gmail';
+    } else {
+      transportConfig.host = process.env.SMTP_HOST || 'smtp.gmail.com';
+      transportConfig.port = parseInt(process.env.SMTP_PORT) || 587;
+      transportConfig.secure = process.env.SMTP_SECURE === 'true';
+    }
+
+    transporter = nodemailer.createTransport(transportConfig);
+    console.log(`📧 SMTP configured for ${transportConfig.service || transportConfig.host}.`);
   } else {
     // Fallback: Ethereal test account (emails only visible via preview URL, not delivered)
     const testAccount = await nodemailer.createTestAccount();
