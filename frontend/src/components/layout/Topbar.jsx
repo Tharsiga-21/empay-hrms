@@ -86,42 +86,70 @@ export default function Topbar() {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 rounded-xl glass-panel shadow-lg border border-surface overflow-hidden z-50">
-              <div className="p-4 border-b border-surface flex items-center justify-between">
-                <h3 className="font-semibold text-on-surface">Notifications</h3>
+            <div className="absolute right-[-60px] md:right-0 mt-3 w-[320px] md:w-[380px] rounded-2xl glass-panel shadow-2xl border border-surface overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="p-4 border-b border-surface flex items-center justify-between bg-surface/50 backdrop-blur-md sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-on-surface">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
                 {unreadCount > 0 && (
                   <button 
                     onClick={() => api.put('/notifications/read-all').then(() => setNotifications(prev => prev.map(n => ({...n, is_read: true}))))}
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
                   >
                     Mark all read
                   </button>
                 )}
               </div>
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[450px] overflow-y-auto scrollbar-thin">
                 {notifications.length === 0 ? (
-                  <div className="p-8 text-center text-on-surface-variant text-sm">No new notifications</div>
-                ) : (
-                  notifications.map(n => (
-                    <div 
-                      key={n.id} 
-                      onClick={() => !n.is_read && markAsRead(n.id)}
-                      className={`p-4 border-b border-surface cursor-pointer hover:bg-[var(--sidebar-hover)] transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h4 className={`text-sm ${!n.is_read ? 'font-semibold text-on-surface' : 'text-on-surface-variant'}`}>{n.title}</h4>
-                          <p className="text-xs text-on-surface-variant mt-1">{n.message}</p>
-                          <span className="text-[10px] text-outline mt-2 block">{new Date(n.created_at).toLocaleString()}</span>
-                        </div>
-                        {!n.is_read && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />}
-                      </div>
+                  <div className="p-12 text-center flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-surface-variant/30 flex items-center justify-center">
+                      <Bell className="w-6 h-6 text-on-surface-variant opacity-20" />
                     </div>
-                  ))
+                    <p className="text-on-surface-variant text-sm font-medium">No new notifications</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-surface">
+                    {notifications.map(n => (
+                      <div 
+                        key={n.id} 
+                        onClick={() => !n.is_read && markAsRead(n.id)}
+                        className={`group p-4 cursor-pointer hover:bg-primary/[0.03] transition-all relative ${!n.is_read ? 'bg-primary/[0.02]' : ''}`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full transition-transform group-hover:scale-125 ${!n.is_read ? 'bg-primary shadow-[0_0_8px_rgba(77,142,255,0.5)]' : 'bg-transparent'}`} />
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`text-[13px] leading-tight mb-1 transition-colors ${!n.is_read ? 'font-bold text-on-surface' : 'font-medium text-on-surface-variant group-hover:text-on-surface'}`}>
+                              {n.title}
+                            </h4>
+                            <p className="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
+                              {n.message}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[10px] font-medium text-outline">
+                                {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <span className="text-[10px] text-outline opacity-30">•</span>
+                              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">
+                                {new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                              </span>
+                            </div>
+                          </div>
+                          {n.type === 'warning' && <div className="w-1.5 h-1.5 rounded-full bg-warning mt-1 flex-shrink-0" />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
           )}
+
         </div>
         <button
           onClick={() => navigate('/admin/settings')}
