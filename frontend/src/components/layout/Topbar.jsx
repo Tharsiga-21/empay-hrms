@@ -58,7 +58,7 @@ export default function Topbar() {
   };
 
   return (
-    <header className="h-16 flex items-center justify-end px-6 border-b"
+    <header className="h-16 flex items-center justify-end px-6 border-b z-50 sticky top-0"
       style={{ background: 'var(--topbar-bg)', backdropFilter: 'blur(12px)', borderColor: 'var(--sidebar-border)' }}>
       {/* Right side */}
       <div className="flex items-center gap-2">
@@ -86,42 +86,75 @@ export default function Topbar() {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 rounded-xl glass-panel shadow-lg border border-surface overflow-hidden z-50">
-              <div className="p-4 border-b border-surface flex items-center justify-between">
-                <h3 className="font-semibold text-on-surface">Notifications</h3>
+            <div className="absolute right-0 mt-2 w-72 md:w-80 rounded-xl glass-panel shadow-2xl border border-surface overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="p-3 border-b border-surface flex items-center justify-between bg-surface/90 backdrop-blur-md sticky top-0 z-10">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-xs font-bold text-on-surface">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span className="bg-primary/10 text-primary text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
                 {unreadCount > 0 && (
                   <button 
                     onClick={() => api.put('/notifications/read-all').then(() => setNotifications(prev => prev.map(n => ({...n, is_read: true}))))}
-                    className="text-xs text-primary hover:underline"
+                    className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors"
                   >
                     Mark all read
                   </button>
                 )}
               </div>
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[280px] overflow-y-auto scrollbar-hide">
+
                 {notifications.length === 0 ? (
-                  <div className="p-8 text-center text-on-surface-variant text-sm">No new notifications</div>
-                ) : (
-                  notifications.map(n => (
-                    <div 
-                      key={n.id} 
-                      onClick={() => !n.is_read && markAsRead(n.id)}
-                      className={`p-4 border-b border-surface cursor-pointer hover:bg-[var(--sidebar-hover)] transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h4 className={`text-sm ${!n.is_read ? 'font-semibold text-on-surface' : 'text-on-surface-variant'}`}>{n.title}</h4>
-                          <p className="text-xs text-on-surface-variant mt-1">{n.message}</p>
-                          <span className="text-[10px] text-outline mt-2 block">{new Date(n.created_at).toLocaleString()}</span>
-                        </div>
-                        {!n.is_read && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />}
-                      </div>
+                  <div className="p-12 text-center flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-surface-variant/20 flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-on-surface-variant opacity-30" />
                     </div>
-                  ))
+                    <p className="text-on-surface-variant text-xs font-medium">No new notifications</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-surface/50">
+                    {notifications.map(n => (
+                      <div 
+                        key={n.id} 
+                        onClick={() => !n.is_read && markAsRead(n.id)}
+                        className={`group p-3 cursor-pointer hover:bg-primary/[0.04] transition-all relative ${!n.is_read ? 'bg-primary/[0.02]' : ''}`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <div className="flex-shrink-0 mt-1 relative">
+                            <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${!n.is_read ? 'bg-primary shadow-[0_0_6px_rgba(77,142,255,0.6)]' : 'bg-outline/20'}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <h4 className={`text-[12px] leading-tight truncate transition-colors ${!n.is_read ? 'font-bold text-on-surface' : 'font-medium text-on-surface-variant group-hover:text-on-surface'}`}>
+                                {n.title}
+                              </h4>
+                              {n.type === 'warning' && <span className="w-1 h-1 rounded-full bg-warning animate-pulse" />}
+                            </div>
+                            <p className="text-[11px] text-on-surface-variant line-clamp-1 leading-normal opacity-80 group-hover:opacity-100 transition-opacity">
+                              {n.message}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <span className="text-[9px] font-bold text-outline tracking-tight opacity-60">
+                                {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <span className="text-[9px] font-bold text-outline uppercase tracking-tighter opacity-40">
+                                {new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
           )}
+
+
         </div>
         <button
           onClick={() => navigate('/admin/settings')}
