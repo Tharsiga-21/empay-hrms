@@ -10,7 +10,7 @@ class AuthService {
     const { full_name, email, password, role, department, designation, phone } = userData;
     
     // Check if user exists
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    const existing = await pool.query('SELECT id FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1))', [email]);
     if (existing.rows.length > 0) {
       throw { status: 409, message: 'User with this email already exists' };
     }
@@ -36,7 +36,7 @@ class AuthService {
 
   async login(email, password) {
     const result = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
+      'SELECT * FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1))',
       [email]
     );
 
@@ -101,7 +101,7 @@ class AuthService {
   }
 
   async forgotPassword(email) {
-    const result = await pool.query('SELECT id, full_name FROM users WHERE email = $1', [email]);
+    const result = await pool.query('SELECT id, full_name FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1))', [email]);
     if (result.rows.length === 0) return; // Do nothing if user not found, prevent enumeration
 
     const user = result.rows[0];
