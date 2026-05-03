@@ -98,6 +98,7 @@ function ThemedToaster() {
       position="top-right"
       richColors
       closeButton
+      duration={3000}
       toastOptions={{
         style: {
           background: 'var(--chart-tooltip-bg)',
