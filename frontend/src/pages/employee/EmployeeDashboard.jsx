@@ -31,7 +31,9 @@ export default function EmployeeDashboard() {
         const [h, m, s] = todayAtt.check_in.split(':').map(Number);
         const checkInDate = new Date();
         checkInDate.setHours(h, m, s, 0);
-        const diff = Math.max(0, Math.floor((Date.now() - checkInDate.getTime()) / 1000));
+        const currentSessionSeconds = Math.max(0, Math.floor((Date.now() - checkInDate.getTime()) / 1000));
+        const accumulatedSeconds = (todayAtt.accumulated_minutes || 0) * 60;
+        const diff = currentSessionSeconds + accumulatedSeconds;
         const hrs = String(Math.floor(diff / 3600)).padStart(2, '0');
         const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
         const secs = String(diff % 60).padStart(2, '0');
@@ -44,11 +46,12 @@ export default function EmployeeDashboard() {
       if (todayAtt && todayAtt.check_in && todayAtt.check_out) {
         const [h1, m1, s1] = todayAtt.check_in.split(':').map(Number);
         const [h2, m2, s2] = todayAtt.check_out.split(':').map(Number);
-        const diff = (h2 * 3600 + m2 * 60 + s2) - (h1 * 3600 + m1 * 60 + s1);
-        const absDiff = Math.max(0, diff);
-        const hrs = String(Math.floor(absDiff / 3600)).padStart(2, '0');
-        const mins = String(Math.floor((absDiff % 3600) / 60)).padStart(2, '0');
-        const secs = String(absDiff % 60).padStart(2, '0');
+        const currentSessionSeconds = (h2 * 3600 + m2 * 60 + s2) - (h1 * 3600 + m1 * 60 + s1);
+        const accumulatedSeconds = (todayAtt.accumulated_minutes || 0) * 60;
+        const diff = Math.max(0, currentSessionSeconds) + accumulatedSeconds;
+        const hrs = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const secs = String(diff % 60).padStart(2, '0');
         setElapsed(`${hrs}:${mins}:${secs}`);
       } else {
         setElapsed('00:00:00');
