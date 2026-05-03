@@ -58,7 +58,7 @@ export default function Topbar() {
   };
 
   return (
-    <header className="h-16 flex items-center justify-end px-6 border-b"
+    <header className="h-16 flex items-center justify-end px-6 border-b z-50 sticky top-0"
       style={{ background: 'var(--topbar-bg)', backdropFilter: 'blur(12px)', borderColor: 'var(--sidebar-border)' }}>
       {/* Right side */}
       <div className="flex items-center gap-2">
@@ -86,7 +86,7 @@ export default function Topbar() {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 md:w-80 rounded-xl glass-panel shadow-2xl border border-surface overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute right-0 mt-2 w-72 md:w-80 rounded-xl glass-panel shadow-2xl border border-surface overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="p-3 border-b border-surface flex items-center justify-between bg-surface/90 backdrop-blur-md sticky top-0 z-10">
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-xs font-bold text-on-surface">Notifications</h3>
