@@ -7,9 +7,9 @@
 ![GSSoC 2026](https://img.shields.io/badge/GSSoC-2026-orange?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)
-![Node](https://img.shields.io/badge/node-18+-green?style=for-the-badge)
+![Node](https://img.shields.io/badge/node-22+-green?style=for-the-badge)
 
-[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org/)
 [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
@@ -167,7 +167,7 @@ See [gssoc.girlscript.org](https://gssoc.girlscript.org) for details.
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js** 18+ → [nodejs.org](https://nodejs.org/)
+- **Node.js** 22+ → [nodejs.org](https://nodejs.org/)
 - **PostgreSQL** 14+ → [postgresql.org](https://www.postgresql.org/download/)
 
 ### 1. Clone & Install

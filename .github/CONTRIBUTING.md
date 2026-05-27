@@ -8,7 +8,7 @@
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js** v18+ → [Download](https://nodejs.org/)
+- **Node.js** v22+ → [Download](https://nodejs.org/)
 - **PostgreSQL** v14+ → [Download](https://www.postgresql.org/download/)
 - **Git** → [Download](https://git-scm.com/)
 
