@@ -41,14 +41,56 @@ jobs:
               return;
             }
             
-            const prompt = `You are a Senior Software Engineer reviewing a Pull Request for a Node.js/React HRMS application. Review the following code diff and provide a concise, professional code review.
-            1. Point out any actual bugs, logic errors, or security vulnerabilities.
-            2. Suggest performance improvements if obvious.
-            3. Do NOT nitpick minor stylistic formatting (let Prettier handle that).
-            4. If the code looks great and has no issues, simply leave a praising LGTM (Looks Good To Me) comment.
-            
-            Here is the Git Diff:
-            \n\n${diff}`;
+            const prompt = `You are an advanced AI Code Reviewer. Review the following Pull Request diff and provide a comprehensive, beautifully formatted Markdown response EXACTLY matching this structure:
+
+<details>
+<summary>ℹ️ Review Info</summary>
+**Reviewer**: Groq Llama3-70B
+</details>
+
+---
+
+<!-- walkthrough_start -->
+<details>
+<summary>📝 Walkthrough</summary>
+
+## Walkthrough
+[Provide a high-level summary of the changes in 2-3 sentences]
+
+## Changes
+| Cohort / File(s) | Summary |
+|---|---|
+| **[Category Name]** <br> \`[filename]\` | [Brief description of what changed] |
+
+## Sequence Diagram(s)
+[If applicable, provide a simple Mermaid sequence diagram summarizing the flow change. If not, omit this section.]
+\`\`\`mermaid
+sequenceDiagram
+  [diagram here]
+\`\`\`
+
+## Estimated code review effort
+🎯 [1-5 Scale] | ⏱️ ~[X] minutes
+
+## Poem
+> 🐰 [Write a cute, 4-line rhyming poem about the code changes] 🥕
+
+</details>
+<!-- walkthrough_end -->
+
+<details>
+<summary>🚥 Feedback & Issues</summary>
+
+### ❌ Bugs & Warnings
+[List any actual bugs, logic errors, or security vulnerabilities here using bullet points. If none, write "✅ Passed checks: No major issues found."]
+
+### ✨ Suggestions
+[Suggest performance improvements or best practices]
+
+</details>
+
+Here is the Git Diff to review:
+\n\n${diff}`;
             
             console.log("Sending diff to Groq API...");
             const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
