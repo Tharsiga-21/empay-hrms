@@ -27,13 +27,6 @@ const login = async (req, res) => {
     }
     
     const safeEmail = email.trim();
-    if (!safeEmail || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required',
-      });
-    }
-
     const data = await authService.login(safeEmail, password);
     res.json({
       success: true,
