@@ -43,7 +43,7 @@ jobs:
 
             <details>
             <summary>ℹ️ Review Info</summary>
-            **Reviewer**: Groq Llama3-70B
+            **Reviewer**: Codesense-AI
             </details>
 
             ---
@@ -112,7 +112,7 @@ jobs:
             }
             
             const reviewComment = data.choices[0].message.content;
-            const finalBody = `🤖 **Groq AI Code Review**\n\n${reviewComment}\n\n*Note: I am an AI reviewer. My suggestions should be taken as advice, not strict demands!*`;
+            const finalBody = `🤖 **Codesense-AI**\n\n${reviewComment}\n\n*Note: I am an AI reviewer. My suggestions should be taken as advice, not strict demands!*`;
             
             // Post the review as a comment on the PR
             await github.rest.issues.createComment({
