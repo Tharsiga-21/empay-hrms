@@ -42,6 +42,8 @@ const initMailer = async () => {
 
 initMailer().catch(console.error);
 
+const sanitizeHtml = require('sanitize-html');
+
 const sendEmail = async (to, subject, text, html = '') => {
   if (!transporter) await initMailer();
   
@@ -54,7 +56,14 @@ const sendEmail = async (to, subject, text, html = '') => {
     text,
   };
   if (html) {
-    mailOptions.html = html;
+    // Sanitize HTML to prevent XSS
+    mailOptions.html = sanitizeHtml(html, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'table', 'tr', 'td', 'style']),
+      allowedAttributes: {
+        '*': ['style', 'class'],
+        'a': ['href', 'name', 'target']
+      }
+    });
   }
   const info = await transporter.sendMail(mailOptions);
 

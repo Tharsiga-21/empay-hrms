@@ -4,8 +4,8 @@ import { useSidebar } from '../../context/SidebarContext';
 import UserAvatar from '../shared/UserAvatar';
 import {
   LayoutDashboard, Users, CalendarCheck, CalendarOff, Banknote,
-  Settings, UserPlus, Receipt, DollarSign,
-  BookUser, FileText, LogOut, ChevronsLeft, ChevronsRight
+  Settings, UserPlus, CheckSquare, Receipt, DollarSign,
+  BookUser, LogOut, Building2, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 
 const roleMenus = {

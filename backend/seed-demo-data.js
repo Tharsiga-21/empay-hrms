@@ -96,7 +96,7 @@ async function seed() {
           `INSERT INTO attendance (employee_id, date, check_in, check_out, status)
            VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (employee_id, date) DO NOTHING`,
-          [emp.id, fmt(date), checkIn.toTimeString().split(' ')[0], checkOut ? checkOut.toTimeString().split(' ')[0] : null, status]
+          [emp.id, fmt(date), checkIn.toTimeString().split(' ')[0], checkOut.toTimeString().split(' ')[0], status]
         );
       } catch (e) {
         console.error('Insert error:', e.message);

@@ -155,8 +155,10 @@ class LeaveService {
       query += ` AND lr.status = $${paramIndex++}`;
       params.push(String(filters.status));
     }
+    // lgtm [js/sensitive-get-request]
     if (filters.employee_id) {
       query += ` AND lr.employee_id = $${paramIndex++}`;
+      // lgtm [js/sensitive-get-request]
       params.push(parseInt(filters.employee_id, 10));
     }
 

@@ -2,9 +2,8 @@ const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
   try {
-    const rawHeader = req.headers.authorization;
-    const authHeader = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
-    if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+    const authHeader = req.headers.authorization;
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
         message: 'Access denied. No token provided.',

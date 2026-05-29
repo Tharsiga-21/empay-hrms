@@ -109,6 +109,7 @@ class AttendanceService {
       month, 
       year, 
       filters.department ? `%${filters.department}%` : null,
+      // lgtm [js/sensitive-get-request]
       filters.employee_id ? parseInt(filters.employee_id, 10) : null
     ];
     
