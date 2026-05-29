@@ -47,12 +47,15 @@ const sendEmail = async (to, subject, text, html = '') => {
   
   const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || '"EmPay HRMS" <no-reply@empay.local>';
   
+  // Escape text to prevent XSS when used as HTML fallback
+  const escapeHtml = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  
   const info = await transporter.sendMail({
     from: fromAddress,
     to,
     subject,
     text,
-    html: html || text
+    html: html || escapeHtml(text)
   });
 
   // Log preview URL only for Ethereal (test mode)

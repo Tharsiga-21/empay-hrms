@@ -21,8 +21,10 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const today = new Date();
 const fmt = (d) => d.toISOString().slice(0, 10);
 
+const crypto = require('crypto');
+
 function randomBetween(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return crypto.randomInt(min, max + 1);
 }
 
 function subtractDays(date, days) {

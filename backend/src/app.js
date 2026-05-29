@@ -43,16 +43,19 @@ app.use(express.urlencoded({ extended: true }));
 const path = require('path');
 app.use('/avatars', express.static(path.join(__dirname, '../uploads/avatars')));
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/leave', leaveRoutes);
-app.use('/api/payroll', payrollRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/notifications', notificationsRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/search', searchRoutes);
+// Rate limiting
+const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
+
+// API Routes (auth gets a stricter limiter)
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/users', apiLimiter, usersRoutes);
+app.use('/api/attendance', apiLimiter, attendanceRoutes);
+app.use('/api/leave', apiLimiter, leaveRoutes);
+app.use('/api/payroll', apiLimiter, payrollRoutes);
+app.use('/api/dashboard', apiLimiter, dashboardRoutes);
+app.use('/api/notifications', apiLimiter, notificationsRoutes);
+app.use('/api/settings', apiLimiter, settingsRoutes);
+app.use('/api/search', apiLimiter, searchRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
