@@ -13,6 +13,8 @@ export const SidebarProvider = ({ children }) => {
     return localStorage.getItem('empay_sidebar_collapsed') === 'true';
   });
 
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
   const toggle = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
@@ -21,8 +23,16 @@ export const SidebarProvider = ({ children }) => {
     });
   }, []);
 
+  const toggleMobile = useCallback(() => {
+    setIsMobileOpen(prev => !prev);
+  }, []);
+
+  const closeMobile = useCallback(() => {
+    setIsMobileOpen(false);
+  }, []);
+
   return (
-    <SidebarContext.Provider value={{ collapsed, toggle }}>
+    <SidebarContext.Provider value={{ collapsed, toggle, isMobileOpen, toggleMobile, closeMobile }}>
       {children}
     </SidebarContext.Provider>
   );

@@ -43,17 +43,29 @@ const roleMenus = {
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const { collapsed, toggle } = useSidebar();
+  const { collapsed, toggle, isMobileOpen, closeMobile } = useSidebar();
   const menuItems = roleMenus[user?.role] || [];
 
   return (
-    <aside
-      className={`h-screen fixed left-0 top-0 flex flex-col z-40 transition-all duration-300 ease-in-out ${collapsed ? 'w-[68px]' : 'w-64'}`}
-      style={{
-        background: 'var(--sidebar-bg)',
-        backdropFilter: 'blur(20px)',
-        borderRight: '1px solid var(--sidebar-border)',
-      }}>
+    <>
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+          onClick={closeMobile}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`h-screen fixed md:sticky left-0 top-0 flex flex-col z-50 transition-all duration-300 ease-out
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+          w-64 max-w-[80vw] md:max-w-none ${collapsed ? 'md:w-[68px]' : 'md:w-64'} md:flex-shrink-0`}
+        style={{
+          background: 'var(--sidebar-bg)',
+          backdropFilter: 'blur(20px)',
+          borderRight: '1px solid var(--sidebar-border)',
+        }}>
 
       {/* Brand + Toggle */}
       <div className={`flex items-center ${collapsed ? 'justify-center p-4' : 'justify-between p-6'}`}>
@@ -144,5 +156,6 @@ export default function Sidebar() {
         )}
       </div>
     </aside>
+    </>
   );
 }
