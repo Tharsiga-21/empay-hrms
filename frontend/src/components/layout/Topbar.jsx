@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { Bell, Settings, Sun, Moon } from 'lucide-react';
+import { useSidebar } from '../../context/SidebarContext';
+import { Bell, Settings, Sun, Moon, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import api from '../../api/axios';
@@ -10,6 +11,7 @@ import UserAvatar from '../shared/UserAvatar';
 export default function Topbar() {
   const { user } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
+  const { toggleMobile } = useSidebar();
   const navigate = useNavigate();
 
 
@@ -58,8 +60,21 @@ export default function Topbar() {
   };
 
   return (
-    <header className="h-16 flex items-center justify-end px-6 border-b z-50 sticky top-0"
+    <header className="h-16 flex items-center justify-between px-6 border-b z-50 sticky top-0"
       style={{ background: 'var(--topbar-bg)', backdropFilter: 'blur(12px)', borderColor: 'var(--sidebar-border)' }}>
+      {/* Left side - Mobile Hamburger */}
+      <div className="flex items-center md:hidden">
+        <button
+          onClick={toggleMobile}
+          className="p-2 -ml-2 rounded-xl hover:bg-[var(--sidebar-hover)] text-on-surface-variant transition-colors"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Spacer for desktop to keep right items at end */}
+      <div className="hidden md:block flex-1" />
+
       {/* Right side */}
       <div className="flex items-center gap-2">
         {/* Theme Toggle */}

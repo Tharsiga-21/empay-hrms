@@ -11,24 +11,24 @@ export default function StatCard({ title, value, icon: Icon, color = 'primary', 
   const c = colorMap[color] || colorMap.primary;
 
   return (
-    <div className="glass-card p-5 flex items-start justify-between fade-in">
-      <div className="flex-1">
-        <p className="text-[0.7rem] uppercase tracking-widest font-semibold text-on-surface-variant mb-2">{title}</p>
-        <p className="text-3xl font-bold text-on-surface tracking-tight">
+    <div className="glass-card p-4 md:p-5 flex items-start justify-between fade-in">
+      <div className="flex-1 min-w-0 pr-3">
+        <p className="text-[0.7rem] uppercase tracking-widest font-semibold text-on-surface-variant mb-2 truncate">{title}</p>
+        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-on-surface tracking-tight truncate">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </p>
         {subtitle && (
-          <p className="text-xs mt-1.5" style={{ color: c.icon }}>{subtitle}</p>
+          <p className="text-xs mt-1.5 truncate" style={{ color: c.icon }}>{subtitle}</p>
         )}
         {trend && (
-          <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: trend.startsWith('+') ? '#4ade80' : '#f87171' }}>
+          <p className="text-xs mt-1.5 flex items-center gap-1 truncate" style={{ color: trend.startsWith('+') ? '#4ade80' : '#f87171' }}>
             <span className="text-base">↗</span> {trend}
           </p>
         )}
       </div>
       {Icon && (
-        <div className="p-3 rounded-xl" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
-          <Icon className="w-5 h-5" style={{ color: c.icon }} />
+        <div className="p-2 md:p-3 rounded-xl flex-shrink-0" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
+          <Icon className="size-5 md:size-6" style={{ color: c.icon }} />
         </div>
       )}
     </div>
