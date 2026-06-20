@@ -26,6 +26,10 @@ jobs:
               return;
             }
             
+            const creator = context.payload.pull_request?.user?.login;
+            // Ignore if the creator is the repository owner to save API tokens and reduce noise
+            if (creator === context.repo.owner) return;
+            
             console.log("Fetching diff via GitHub API...");
             const diffResponse = await github.rest.pulls.get({
               owner: context.repo.owner,

@@ -21,6 +21,9 @@ jobs:
           script: |
             const creator = context.payload.pull_request.user.login;
             
+            // Ignore if the creator is the repository owner to prevent self-congratulations
+            if (creator === context.repo.owner) return;
+            
             const commentBody = `🎉 **Merged!** Congratulations on getting your Pull Request merged into the \`main\` branch, @${creator}! Thank you for your amazing contribution to **EmPay HRMS**.`;
             
             await github.rest.issues.createComment({
