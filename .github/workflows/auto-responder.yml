@@ -27,6 +27,9 @@ jobs:
             // Ignore comments on Pull Requests (GitHub treats PR comments as issue_comment events)
             if (context.payload.issue.pull_request) return;
             
+            // Ignore comments on closed issues
+            if (context.payload.issue.state === 'closed') return;
+            
             const commentBody = context.payload.comment.body.toLowerCase();
             const textRequiresResponse = commentBody.includes('assign') || 
                                          commentBody.includes('work on this') || 
