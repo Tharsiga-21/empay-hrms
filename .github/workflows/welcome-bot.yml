@@ -22,6 +22,9 @@ jobs:
           script: |
             const creator = context.payload.sender.login;
             
+            // Ignore if the creator is the repository owner
+            if (creator === context.repo.owner) return;
+            
             if (context.eventName === 'issues') {
               const issueComment = `👋 Hi @${creator}! Welcome to **EmPay HRMS**!\n\nThank you for opening this issue. If you are participating in GSSoC '26, please make sure you wait to be assigned before you start working on it. A maintainer will review this shortly.`;
               await github.rest.issues.createComment({
