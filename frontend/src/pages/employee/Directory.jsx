@@ -15,6 +15,7 @@ export default function Directory() {
       .catch(() => setLoading(false));
   }, [search]);
   const copyEmail = async (email) => {
+    if (!email) return;
     try {
       await navigator.clipboard.writeText(email);
       toast.success('Email copied to clipboard');
