@@ -4,6 +4,7 @@ import PageHeader from '../../components/shared/PageHeader';
 import UserAvatar from '../../components/shared/UserAvatar';
 import { Search, X, Loader2, Plus, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { copyEmail } from '../../lib/clipboard';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -24,16 +25,6 @@ export default function Employees() {
   }, [search]);
 
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
-
-  const copyEmail = async (email) => {
-    if (!email) return;
-    try {
-      await navigator.clipboard.writeText(email);
-      toast.success('Email copied to clipboard');
-    } catch {
-      toast.error('Failed to copy email');
-    }
-  };
 
   const openEdit = (user) => {
     setEditUser(user);
