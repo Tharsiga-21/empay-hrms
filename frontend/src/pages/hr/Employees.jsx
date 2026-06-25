@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import PageHeader from '../../components/shared/PageHeader';
 import UserAvatar from '../../components/shared/UserAvatar';
-import { Search, X, Loader2, Plus } from 'lucide-react';
+import { Search, X, Loader2, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import EmptyState from '../../components/shared/EmptyState';
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -73,27 +74,34 @@ export default function Employees() {
       </div>
 
       <div className="glass-card overflow-hidden fade-in">
-        <table className="w-full glass-table">
-          <thead><tr><th>Employee</th><th>Email</th><th>Department</th><th>Designation</th><th>Date Joined</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            {loading ? Array.from({length:5}).map((_,i)=><tr key={i}>{Array.from({length:7}).map((_,j)=><td key={j}><div className="skeleton h-4 w-20 rounded"/></td>)}</tr>) :
-            employees.length === 0 ? <tr><td colSpan={7} className="text-center py-12 text-on-surface-variant">No employees found</td></tr> :
-            employees.map(u => (
-              <tr key={u.id}>
-                <td><div className="flex items-center gap-3">
-                  <UserAvatar user={u} size="sm" />
-                  <span className="font-medium text-on-surface">{u.full_name}</span>
-                </div></td>
-                <td className="text-on-surface-variant">{u.email}</td>
-                <td>{u.department||'—'}</td>
-                <td>{u.designation||'—'}</td>
-                <td>{u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '—'}</td>
-                <td><span className={`chip-${u.is_active?'active':'inactive'} inline-flex px-2 py-0.5 rounded-full text-xs font-semibold`}>{u.is_active?'Active':'Inactive'}</span></td>
-                <td><button onClick={()=>openEdit(u)} className="px-2.5 py-1 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors">Edit</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {!loading && employees.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No employees found"
+            message="No employees match your search. Try a different name or add a new employee."
+          />
+        ) : (
+          <table className="w-full glass-table">
+            <thead><tr><th>Employee</th><th>Email</th><th>Department</th><th>Designation</th><th>Date Joined</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {loading ? Array.from({length:5}).map((_,i)=><tr key={i}>{Array.from({length:7}).map((_,j)=><td key={j}><div className="skeleton h-4 w-20 rounded"/></td>)}</tr>) :
+              employees.map(u => (
+                <tr key={u.id}>
+                  <td><div className="flex items-center gap-3">
+                    <UserAvatar user={u} size="sm" />
+                    <span className="font-medium text-on-surface">{u.full_name}</span>
+                  </div></td>
+                  <td className="text-on-surface-variant">{u.email}</td>
+                  <td>{u.department||'—'}</td>
+                  <td>{u.designation||'—'}</td>
+                  <td>{u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '—'}</td>
+                  <td><span className={`chip-${u.is_active?'active':'inactive'} inline-flex px-2 py-0.5 rounded-full text-xs font-semibold`}>{u.is_active?'Active':'Inactive'}</span></td>
+                  <td><button onClick={()=>openEdit(u)} className="px-2.5 py-1 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors">Edit</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {editUser && (
